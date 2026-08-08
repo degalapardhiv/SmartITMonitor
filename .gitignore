@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+node_modules/
+dist/
+build/
+*.log
+.vscode/
+.idea/
+postgres-data/

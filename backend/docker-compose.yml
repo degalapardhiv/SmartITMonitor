@@ -1,0 +1,44 @@
+services:
+
+  db:
+    image: postgres:16
+
+    container_name: smart-monitor-db
+
+    restart: always
+
+    environment:
+      POSTGRES_USER: smartadmin
+      POSTGRES_PASSWORD: StrongPassword123
+      POSTGRES_DB: smart_monitor
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    ports:
+      - "5433:5432"
+
+
+  backend:
+
+    build: .
+
+    container_name: smart-monitor-api
+
+    restart: always
+
+    depends_on:
+      - db
+
+    environment:
+      DATABASE_URL: postgresql://smartadmin:StrongPassword123@db:5432/smart_monitor
+      SECRET_KEY: change_this_secret_key
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+
+    ports:
+      - "8000:8000"
+
+
+volumes:
+
+  postgres_data:

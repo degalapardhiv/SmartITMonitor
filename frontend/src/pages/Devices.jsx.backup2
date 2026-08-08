@@ -1,0 +1,211 @@
+import { useEffect, useState } from "react";
+import api from "../services/api";
+import useWebSocket from "../hooks/useWebSocket";
+import { useAuth } from "../context/AuthContext";
+import AddDevice from "../components/devices/AddDevice";
+
+
+function Devices(){
+
+  const { role } = useAuth();
+
+  const [devices,setDevices] = useState([]);
+  const liveData = useWebSocket();
+  const [search,setSearch] = useState("");
+  const [showAdd,setShowAdd] = useState(false);
+
+
+  useEffect(()=>{
+
+    loadDevices();
+
+  },[]);
+
+
+  useEffect(()=>{
+
+    if(
+      liveData &&
+      liveData.type === "device_update"
+    ){
+
+      setDevices(prev => {
+
+        const exists = prev.find(
+          d => d.id === liveData.device.id
+        );
+
+        if(exists){
+
+          return prev.map(d =>
+            d.id === liveData.device.id
+            ? liveData.device
+            : d
+          );
+
+        }
+
+        return [
+          ...prev,
+          liveData.device
+        ];
+
+      });
+
+    }
+
+  },[liveData]);
+
+
+  async function loadDevices(){
+
+    try{
+
+      const response = await api.get("/devices");
+
+      setDevices(response.data);
+
+    }
+    catch(err){
+
+      console.error(
+        "Device Load Error",
+        err
+      );
+
+    }
+
+  }
+
+
+  const filtered = devices.filter(
+    device =>
+    device.hostname
+    .toLowerCase()
+    .includes(search.toLowerCase())
+  );
+
+
+  return (
+
+    <div>
+
+      <div className="flex justify-between items-center mb-6">
+
+        <div>
+          <h1 className="text-4xl font-bold text-white">
+            Devices
+          </h1>
+
+          <p className="text-cyan-400 mt-2">
+            Access: {role}
+          </p>
+        </div>
+
+
+        {role === "Admin" && (
+          <button
+            onClick={() => setShowAdd(true)}
+            className="bg-cyan-600 hover:bg-cyan-700 px-5 py-3 rounded-lg font-semibold"
+          >
+            Add Device
+          </button>
+        )}
+
+      </div>
+
+
+      <input
+
+        className="bg-slate-800 text-white p-3 rounded-lg mb-6 w-full"
+
+        placeholder="Search device..."
+
+        value={search}
+
+        onChange={
+          e=>setSearch(e.target.value)
+        }
+
+      />
+
+
+      
+{
+ showAdd && role === "Admin" && (
+   <AddDevice
+    onAdded={(device)=>{
+      setDevices([
+        ...devices,
+        device
+      ]);
+      setShowAdd(false);
+    }}
+   />
+ )
+}
+
+<div className="grid gap-5">
+
+
+      {
+        filtered.map(device=>(
+
+
+          <div
+          key={device.id}
+          className="bg-slate-800 rounded-xl p-6"
+          >
+
+            <h2 className="text-2xl text-cyan-400">
+
+              {device.hostname}
+
+            </h2>
+
+
+            <p className="text-gray-400">
+              IP: {device.ip}
+            </p>
+
+
+            <p className="text-green-400">
+              Status: {device.status}
+            </p>
+
+
+            <div className="grid grid-cols-3 mt-4">
+
+              <p>
+                CPU: {device.cpu}%
+              </p>
+
+              <p>
+                RAM: {device.ram}%
+              </p>
+
+              <p>
+                Disk: {device.disk}%
+              </p>
+
+            </div>
+
+
+          </div>
+
+
+        ))
+      }
+
+
+      </div>
+
+
+    </div>
+
+  );
+
+}
+
+
+export default Devices;

@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+body{
+    margin:0;
+    background:#0f172a;
+    color:white;
+    font-family:Inter,sans-serif;
+}
+
+
+.offline-alert {
+
+  background: #450a0a;
+
+  color: #fecaca;
+
+  border: 1px solid #ef4444;
+
+  padding: 15px;
+
+  margin: 15px;
+
+  border-radius: 10px;
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  font-weight: bold;
+
+}
+
+
+.offline-alert button {
+
+  background: transparent;
+
+  color: #fecaca;
+
+  border: none;
+
+  font-size: 18px;
+
+  cursor: pointer;
+
+}
+
+
+
+.device-table-container {
+
+  margin: 20px;
+
+  padding: 20px;
+
+  background: rgba(255,255,255,0.05);
+
+  border-radius: 12px;
+
+  overflow-x: auto;
+
+}
+
+
+.device-table {
+
+  width: 100%;
+
+  border-collapse: collapse;
+
+}
+
+
+.device-table th {
+
+  text-align: left;
+
+  padding: 12px;
+
+  border-bottom: 1px solid #334155;
+
+}
+
+
+.device-table td {
+
+  padding: 12px;
+
+  border-bottom: 1px solid #1e293b;
+
+}
+
+
+.status-online {
+
+  background: #065f46;
+
+  color: #a7f3d0;
+
+  padding: 5px 12px;
+
+  border-radius: 20px;
+
+  font-size: 13px;
+
+}
+
+
+.status-offline {
+
+  background: #7f1d1d;
+
+  color: #fecaca;
+
+  padding: 5px 12px;
+
+  border-radius: 20px;
+
+  font-size: 13px;
+
+}
+
+
+.device-table tr:hover {
+
+  background: rgba(255,255,255,0.05);
+
+}
+

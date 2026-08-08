@@ -1,0 +1,100 @@
+import { useEffect, useState } from "react";
+
+import api from "../services/api";
+
+
+export default function Alerts(){
+
+    const [alerts,setAlerts] = useState([]);
+
+
+    useEffect(()=>{
+
+        loadAlerts();
+
+    },[]);
+
+
+
+    async function loadAlerts(){
+
+        const res = await api.get("/alerts/");
+
+        setAlerts(res.data);
+
+    }
+
+
+
+    return (
+
+        <div>
+
+            <h1>
+                Alerts
+            </h1>
+
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Device</th>
+                        <th>Type</th>
+                        <th>Value</th>
+                        <th>Message</th>
+                        <th>Severity</th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                {
+                    alerts.map(alert => (
+
+                        <tr key={alert.id}>
+
+                            <td>
+                                {alert.hostname}
+                            </td>
+
+
+                            <td>
+                                {alert.alert_type}
+                            </td>
+
+
+                            <td>
+                                {alert.value}
+                            </td>
+
+
+                            <td>
+                                {alert.message}
+                            </td>
+
+
+                            <td>
+                                {alert.severity}
+                            </td>
+
+
+                        </tr>
+
+                    ))
+                }
+
+                </tbody>
+
+
+            </table>
+
+
+        </div>
+
+    );
+
+}

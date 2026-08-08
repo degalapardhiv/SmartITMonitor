@@ -1,0 +1,62 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from .database import SessionLocal
+from .alert_model import Alert
+
+
+router = APIRouter(
+    prefix="/alerts",
+    tags=["Alerts"]
+)
+
+
+def get_db():
+
+    db = SessionLocal()
+
+    try:
+        yield db
+
+    finally:
+        db.close()
+
+
+
+@router.get("/")
+def get_alerts(
+    db: Session = Depends(get_db)
+):
+
+    alerts = (
+        db.query(Alert)
+        .order_by(Alert.created_at.desc())
+        .limit(100)
+        .all()
+    )
+
+    return alerts
+
+
+@router.get("/history")
+def alert_history(
+    db: Session = Depends(get_db)
+):
+
+    alerts = (
+        db.query(Alert)
+        .order_by(Alert.created_at.asc())
+        .all()
+    )
+
+    return [
+        {
+            "id": alert.id,
+            "hostname": alert.hostname,
+            "type": alert.alert_type,
+            "value": alert.value,
+            "severity": alert.severity,
+            "created_at": alert.created_at
+        }
+        for alert in alerts
+    ]

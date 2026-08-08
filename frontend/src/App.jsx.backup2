@@ -1,0 +1,136 @@
+import { lazy, Suspense } from "react";
+
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
+import { useAuth } from "./context/AuthContext";
+
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+
+import Login from "./pages/Login";
+const Dashboard = lazy(()=>import("./pages/Dashboard"));
+const Devices = lazy(()=>import("./pages/Devices"));
+const DeviceDetails = lazy(()=>import("./pages/DeviceDetails"));
+const Departments = lazy(()=>import("./pages/Departments"));
+const Alerts = lazy(()=>import("./pages/Alerts"));
+const Reports = lazy(()=>import("./pages/Reports"));
+const Settings = lazy(()=>import("./pages/Settings"));
+
+function App() {
+  const { isAuthenticated } = useAuth();
+
+  return (
+    <BrowserRouter>
+
+      <Suspense fallback={
+        <div className="text-white p-10">
+          Loading...
+        </div>
+      }>
+
+      <Routes>
+
+        {/* Redirect Login */}
+        <Route
+          path="/login"
+          element={
+            isAuthenticated
+              ? <Navigate to="/" replace />
+              : <Login />
+          }
+        />
+
+        {/* Dashboard */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Devices */}
+        <Route
+          path="/devices"
+          element={
+            <ProtectedRoute>
+              <Devices />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Device Details */}
+        <Route
+          path="/devices/:id"
+          element={
+            <ProtectedRoute>
+              <DeviceDetails />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Departments */}
+        <Route
+          path="/departments"
+          element={
+            <ProtectedRoute>
+              <Departments />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Alerts */}
+        <Route
+          path="/alerts"
+          element={
+            <ProtectedRoute>
+              <Alerts />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Reports */}
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Settings */}
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 404 */}
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to={isAuthenticated ? "/" : "/login"}
+              replace
+            />
+          }
+        />
+
+      </Routes>
+
+      </Suspense>
+
+    </BrowserRouter>
+  );
+}
+
+export default App;
