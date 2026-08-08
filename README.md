@@ -17,3 +17,38 @@
 
 ---
 
+
+---
+
+## 🎥 Demo Preview
+
+Live dashboard demonstration:
+
+![Smart IT Monitor Demo](demo/demo.gif)
+
+---
+
+
+---
+
+## 📂 Project Structure
+
+SmartITMonitor/
+│
+├── backend/
+│ ├── app/
+│ ├── Dockerfile
+│ └── requirements.txt
+│
+├── frontend/
+│ ├── src/
+│ ├── Dockerfile
+│ └── package.json
+│
+├── docker-compose.yml
+├── README.md
+├── LICENSE
+└── screenshots/
+
+---
+
