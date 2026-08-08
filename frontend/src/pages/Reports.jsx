@@ -458,15 +458,15 @@ function Reports() {
                   </td>
 
                   <td className="text-center p-4">
-                    {device.cpu.toFixed(1)}%
+                    {(device.cpu ?? 0).toFixed(1)}%
                   </td>
 
                   <td className="text-center p-4">
-                    {device.ram.toFixed(1)}%
+                    {(device.ram ?? 0).toFixed(1)}%
                   </td>
 
                   <td className="text-center p-4">
-                    {device.disk.toFixed(1)}%
+                    {(device.disk ?? 0).toFixed(1)}%
                   </td>
 
                   <td className="text-center p-4">
