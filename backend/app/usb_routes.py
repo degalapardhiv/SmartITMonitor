@@ -8,6 +8,7 @@ from sqlalchemy import text
 from .database import SessionLocal
 from .auth_dependency import get_current_user
 from .agent_auth import get_agent_device
+from .services.lab_alert_service import create_lab_alert
 
 router = APIRouter(prefix="/usb", tags=["USB Approval"])
 
@@ -123,6 +124,34 @@ def create_usb_event(
 
     request = dict(result.mappings().first())
     db.commit()
+
+
+    if request_status == "pending":
+        create_lab_alert(
+            db,
+            device_id=event.device_id,
+            hostname=device["hostname"],
+            alert_type="USB_PENDING",
+            severity="HIGH",
+            message=(
+                f"USB approval required on {device['hostname']}: "
+                f"{event.description or event.usb_id or 'Unknown USB'}"
+            ),
+        )
+
+    elif request_status == "rejected":
+        create_lab_alert(
+            db,
+            device_id=event.device_id,
+            hostname=device["hostname"],
+            alert_type="USB_REJECTED",
+            severity="HIGH",
+            message=(
+                f"USB rejected by Exam Mode policy on "
+                f"{device['hostname']}: "
+                f"{event.description or event.usb_id or 'Unknown USB'}"
+            ),
+        )
 
     return request
 
