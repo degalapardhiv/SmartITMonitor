@@ -25,6 +25,7 @@ from .routes import router
 from .auth_routes import router as auth_router
 from .alert_routes import router as alert_router
 from .usb_routes import router as usb_router
+from .exam_mode import router as exam_mode_router
 
 # Create all database tables
 Base.metadata.create_all(bind=engine)
@@ -124,3 +125,5 @@ def startup_device_metrics():
 
 
 app.include_router(usb_router)
+
+app.include_router(exam_mode_router)
