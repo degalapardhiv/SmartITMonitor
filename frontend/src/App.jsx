@@ -14,6 +14,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Login from "./pages/Login";
 import Lab2 from "./pages/Lab2";
 import USBApproval from "./pages/USBApproval";
+import ExamMode from "./pages/ExamMode";
 const Dashboard = lazy(()=>import("./pages/Dashboard"));
 const Devices = lazy(()=>import("./pages/Devices"));
 const DeviceDetails = lazy(()=>import("./pages/DeviceDetails"));
@@ -170,6 +171,10 @@ function App() {
       <Route
         path="/usb-approval"
         element={<USBApproval />}
+      />
+      <Route
+        path="/exam-mode"
+        element={<ExamMode />}
       />
 </Routes>
 
