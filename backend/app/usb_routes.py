@@ -59,6 +59,28 @@ def create_usb_event(
             detail="Device not found",
         )
 
+    policy = db.execute(
+        text("""
+            SELECT enabled, usb_policy
+            FROM exam_mode_settings
+            WHERE id = 1
+        """)
+    ).mappings().first()
+
+    exam_enabled = bool(policy["enabled"]) if policy else False
+    usb_policy = (
+        policy["usb_policy"]
+        if policy
+        else "approval_required"
+    )
+
+    if exam_enabled and usb_policy == "allow":
+        request_status = "approved"
+    elif exam_enabled and usb_policy == "block":
+        request_status = "rejected"
+    else:
+        request_status = "pending"
+
     result = db.execute(
         text("""
             INSERT INTO usb_requests (
@@ -75,7 +97,7 @@ def create_usb_event(
                 :vendor,
                 :product,
                 :description,
-                'pending'
+                :status
             )
             RETURNING
                 id,
@@ -95,6 +117,7 @@ def create_usb_event(
             "vendor": event.vendor,
             "product": event.product,
             "description": event.description,
+            "status": request_status,
         },
     )
 
