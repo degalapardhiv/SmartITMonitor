@@ -24,6 +24,7 @@ from .alert_model import Alert
 from .routes import router
 from .auth_routes import router as auth_router
 from .alert_routes import router as alert_router
+from .usb_routes import router as usb_router
 
 # Create all database tables
 Base.metadata.create_all(bind=engine)
@@ -121,3 +122,5 @@ def startup_device_metrics():
     start_heartbeat()
     start_alert_monitor()
 
+
+app.include_router(usb_router)
