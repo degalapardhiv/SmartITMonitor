@@ -2,15 +2,15 @@ from datetime import datetime, timedelta
 from jose import jwt
 from passlib.context import CryptContext
 
+from app.config import (
+    SECRET_KEY,
+    ALGORITHM,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+)
+
 # -----------------------------
 # Configuration
 # -----------------------------
-
-SECRET_KEY = "smart-it-monitor-secret-key"
-
-ALGORITHM = "HS256"
-
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 pwd_context = CryptContext(
     schemes=["bcrypt"],

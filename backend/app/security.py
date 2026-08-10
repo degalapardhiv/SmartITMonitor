@@ -2,10 +2,7 @@ from datetime import datetime, timedelta
 
 from jose import jwt
 
-
-SECRET_KEY = "smart-it-monitor-secret-key"
-
-ALGORITHM = "HS256"
+from app.config import SECRET_KEY, ALGORITHM
 
 
 def create_token(data: dict):

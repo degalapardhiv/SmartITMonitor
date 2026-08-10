@@ -41,7 +41,7 @@ def email_enabled():
 
 
 
-def send_email(subject, message):
+def send_email(subject, message, alert_id=None):
 
     if not email_enabled():
 
@@ -96,7 +96,7 @@ def send_email(subject, message):
 
 
         save_notification(
-            None,
+            alert_id,
             "Email",
             "SENT",
             subject

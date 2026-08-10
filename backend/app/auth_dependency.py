@@ -2,10 +2,7 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 
-
-SECRET_KEY = "smart-it-monitor-secret-key"
-
-ALGORITHM = "HS256"
+from app.config import SECRET_KEY, ALGORITHM
 
 
 security = HTTPBearer()

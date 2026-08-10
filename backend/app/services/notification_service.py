@@ -37,17 +37,13 @@ def save_notification(
 
         try:
 
-            import asyncio
-
-            asyncio.create_task(
-                manager.broadcast(
-                    {
-                        "type":"notification",
-                        "channel":channel,
-                        "status":status,
-                        "message":message
-                    }
-                )
+            manager.broadcast_from_thread(
+                {
+                    "type": "notification",
+                    "channel": channel,
+                    "status": status,
+                    "message": message
+                }
             )
 
         except Exception:
