@@ -7,6 +7,7 @@ from sqlalchemy import text
 
 from .database import SessionLocal
 from .auth_dependency import get_current_user
+from .agent_auth import get_agent_device
 
 router = APIRouter(prefix="/usb", tags=["USB Approval"])
 
@@ -34,9 +35,15 @@ def get_db():
 @router.post("/events")
 def create_usb_event(
     event: USBEvent,
-    current_user=Depends(get_current_user),
+    agent_device=Depends(get_agent_device),
     db=Depends(get_db),
 ):
+    if int(agent_device["id"]) != int(event.device_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Agent cannot submit events for another device",
+        )
+
     device = db.execute(
         text("""
             SELECT id, hostname
