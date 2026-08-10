@@ -11,3 +11,5 @@ postgres-data/
 
 .backup-before-lab2/
 .backup-lab2/
+
+.agent.env
