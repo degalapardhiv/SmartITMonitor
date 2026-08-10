@@ -372,15 +372,6 @@ The Alerts section provides centralized monitoring of system and security events
 
 ---
 
-### Demo
-
-A quick visual walkthrough of the SmartITMonitor interface:
-
-![SmartITMonitor Demo](demo/demo.gif)
-
-
----
-
 # 👥 Team Collaboration
 
 | Member | GitHub | Role |
