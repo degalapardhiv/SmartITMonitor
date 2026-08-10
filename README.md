@@ -346,27 +346,38 @@ WebSocket Update
 React Dashboard
 ```
 
----
+## 📸 Screenshots
 
-# 📸 Screenshots
+### Dashboard
 
-Add screenshots:
+The SmartITMonitor dashboard provides a centralized real-time overview of the IT infrastructure, including device health, online/offline status, active alerts, USB requests, Exam Mode status, system health, and recent activity.
 
-```
-screenshots/dashboard.png
-screenshots/devices.png
-screenshots/alerts.png
-```
+![SmartITMonitor Dashboard](screenshots/dashboard.png)
 
 ---
 
-# 🎥 Demo
+### Devices
 
-Add demo:
+The Devices page provides centralized device management with device status, IP address, hostname, department, location, CPU, RAM, disk usage, operating system, and last-seen information.
 
-```
-demo/demo.gif
-```
+![SmartITMonitor Devices](screenshots/devices.png)
+
+---
+
+### Alerts
+
+The Alerts section provides centralized monitoring of system and security events, including severity, affected device, status, timestamp, alert message, and administrative actions.
+
+![SmartITMonitor Alerts](screenshots/alerts.png)
+
+---
+
+### Demo
+
+A quick visual walkthrough of the SmartITMonitor interface:
+
+![SmartITMonitor Demo](demo/demo.gif)
+
 
 ---
 
