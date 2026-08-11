@@ -14,11 +14,11 @@ from sqlalchemy.orm import Session
 from .database import SessionLocal
 from .models import Device
 from .metric_model import DeviceMetric
-from .schemas import DeviceCreate, AgentRegister
+from .schemas import DeviceCreate, DeviceResponse, AgentRegister
 from .websocket_manager import manager
 from .services.alert_service import check_device_alert
 from .services.network_scanner import scan_network
-from .metrics import update_device_metrics
+from .metrics import update_device_metrics as refresh_metrics_gauges
 from .auth_dependency import get_current_user
 from .role_dependency import require_admin
 
@@ -58,6 +58,7 @@ def home():
 
 @router.get("/dashboard")
 def dashboard(
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
 
@@ -146,7 +147,7 @@ def dashboard(
 # Get All Devices
 # ==========================================
 
-@router.get("/devices")
+@router.get("/devices", response_model=list[DeviceResponse])
 def get_devices(
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -158,14 +159,14 @@ def get_devices(
         .all()
     )
 
-
 # ==========================================
 # Get One Device
 # ==========================================
 
-@router.get("/devices/{device_id}")
+@router.get("/devices/{device_id}", response_model=DeviceResponse)
 def get_device(
     device_id: int,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
 
@@ -191,6 +192,7 @@ def get_device(
 @router.post("/devices")
 async def add_device(
     device: DeviceCreate,
+    current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
 
@@ -212,7 +214,7 @@ async def add_device(
         existing.ram = device.ram
         existing.disk = device.disk
 
-        existing.status = device.status
+        existing.status = device.status.lower()
 
         existing.department = device.department
         existing.lab = device.lab
@@ -299,10 +301,9 @@ async def add_device(
     )
 
 
-    await check_device_alert(
+    check_device_alert(
         new_device,
-        db,
-        manager
+        db
     )
 
 
@@ -317,6 +318,7 @@ async def add_device(
 async def update_device(
     device_id: int,
     updated: DeviceCreate,
+    current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
 
@@ -339,7 +341,7 @@ async def update_device(
     device.ram = updated.ram
     device.disk = updated.disk
 
-    device.status = updated.status
+    device.status = updated.status.lower()
 
     device.department = updated.department
     device.lab = updated.lab
@@ -375,10 +377,9 @@ async def update_device(
     )
 
 
-    await check_device_alert(
+    check_device_alert(
         device,
-        db,
-        manager
+        db
     )
 
 
@@ -392,6 +393,7 @@ async def update_device(
 @router.delete("/devices/{device_id}")
 async def delete_device(
     device_id: int,
+    current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
 
@@ -430,6 +432,7 @@ async def delete_device(
 @router.get("/devices/{device_id}/metrics")
 def get_device_metrics(
     device_id: int,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
 
@@ -483,7 +486,7 @@ async def update_device_metrics(
         )
 
 
-    if device.agent_token != x_agent_token:
+    if device.agent_token is None or device.agent_token != x_agent_token:
         raise HTTPException(
             status_code=401,
             detail="Invalid agent token"
@@ -623,30 +626,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 
-# ==========================================
-# Device Metrics History
-# ==========================================
-
-@router.get("/devices/{device_id}/metrics")
-def get_device_metrics(
-    device_id: int,
-    db: Session = Depends(get_db)
-):
-
-    metrics = (
-        db.query(DeviceMetric)
-        .filter(DeviceMetric.device_id == device_id)
-        .order_by(DeviceMetric.id.desc())
-        .limit(50)
-        .all()
-    )
-
-    return metrics
-
-
 @router.post("/scan")
 def scan_devices(
     network: str,
+    current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
 
@@ -663,7 +646,7 @@ def scan_devices(
 
         if device:
 
-            device.status = item["status"]
+            device.status = item["status"].lower()
             device.hostname = item["hostname"]
             device.os = item["os"]
 
@@ -686,7 +669,7 @@ def scan_devices(
 
     all_devices = db.query(Device).all()
 
-    update_device_metrics(all_devices)
+    refresh_metrics_gauges(all_devices)
 
     return {
         "scanned": len(saved),
@@ -706,6 +689,7 @@ import app.notification_config as notification_config
 
 @router.get("/settings/telegram")
 def telegram_status(
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
 
@@ -744,6 +728,7 @@ def telegram_status(
 @router.post("/settings/telegram")
 def update_telegram_status(
     enabled: bool,
+    current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
 
@@ -784,6 +769,7 @@ def update_telegram_status(
 
 @router.get("/settings/email")
 def email_status(
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
 
@@ -814,6 +800,7 @@ def email_status(
 @router.post("/settings/email")
 def update_email_status(
     enabled: bool,
+    current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
 
@@ -857,6 +844,7 @@ from .email_settings_model import EmailSetting
 
 @router.get("/settings/email/config")
 def get_email_config(
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
 
@@ -889,6 +877,7 @@ def save_email_config(
     username: str,
     password: str,
     receiver: str,
+    current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
 
@@ -926,25 +915,7 @@ def save_email_config(
     }
 
 
-# ==========================================
-# Test Email
-# ==========================================
-
 from app.services.email_service import send_email
-
-
-@router.post("/settings/email/test")
-def test_email():
-
-    send_email(
-        "Smart IT Monitor Test Email",
-        "This is a test email from Smart IT Monitor."
-    )
-
-
-    return {
-        "status":"sent"
-    }
 
 
 # ==========================================
@@ -956,6 +927,7 @@ from app.email_history_model import EmailHistory
 
 @router.get("/settings/email/history")
 def email_history(
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
 
@@ -970,7 +942,9 @@ def email_history(
 
 
 @router.post("/settings/test-telegram")
-def test_telegram():
+def test_telegram(
+    current_user=Depends(require_admin),
+):
 
     from app.services.telegram_service import send_telegram
 
@@ -985,7 +959,9 @@ def test_telegram():
 
 
 @router.post("/settings/test-email")
-def test_email():
+def test_email(
+    current_user=Depends(require_admin),
+):
 
     from app.services.email_service import send_email
 
@@ -1001,6 +977,7 @@ def test_email():
 
 @router.get("/notifications/analytics")
 def notification_analytics(
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
 

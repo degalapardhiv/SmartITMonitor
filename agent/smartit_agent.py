@@ -1,9 +1,18 @@
 import os
+import sys
+import threading
 import time
 import socket
 import platform
 import requests
 import psutil
+
+sys.path.insert(
+    0,
+    os.path.dirname(os.path.abspath(__file__)),
+)
+
+from network.network_monitor import run_discovery_once
 
 API_URL = os.getenv(
     "SMARTIT_API_URL",
@@ -17,6 +26,9 @@ AGENT_TOKEN = os.getenv(
 
 DEVICE_ID = os.getenv("SMARTIT_DEVICE_ID", "")
 INTERVAL = int(os.getenv("SMARTIT_INTERVAL", "5"))
+NETWORK_DISCOVERY_INTERVAL = int(
+    os.getenv("SMARTIT_NETWORK_DISCOVERY_INTERVAL", "300")
+)
 
 
 def collect_metrics():
@@ -77,9 +89,28 @@ def main():
     print(f"[SmartIT] Device ID: {DEVICE_ID}")
     print(f"[SmartIT] Interval: {INTERVAL}s")
 
+    try:
+        network_thread = threading.Thread(
+            target=_network_discovery_loop,
+            daemon=True,
+        )
+        network_thread.start()
+        print("[SmartIT] Network discovery thread started")
+    except Exception as exc:
+        print(f"[SmartIT] Network discovery unavailable: {exc}")
+
     while True:
         send_metrics()
         time.sleep(INTERVAL)
+
+
+def _network_discovery_loop():
+    while True:
+        try:
+            run_discovery_once()
+        except Exception as exc:
+            print(f"[SmartIT] Network discovery cycle error: {exc}")
+        time.sleep(NETWORK_DISCOVERY_INTERVAL)
 
 
 if __name__ == "__main__":

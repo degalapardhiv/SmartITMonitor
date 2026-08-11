@@ -24,9 +24,12 @@ export default function USBApproval() {
   };
 
   useEffect(() => {
-    loadRequests();
+    async function sync() {
+      await loadRequests();
+    }
+    sync();
 
-    const timer = setInterval(loadRequests, 5000);
+    const timer = setInterval(sync, 5000);
 
     return () => clearInterval(timer);
   }, []);

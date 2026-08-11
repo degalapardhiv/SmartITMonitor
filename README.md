@@ -18,7 +18,11 @@ The platform supports:
 - CPU, RAM and Disk tracking
 - Device health monitoring
 - Alert management
+- Telegram alert notifications
 - WebSocket live updates
+- Network discovery
+- USB approval workflow
+- Exam mode enforcement
 - Infrastructure analytics
 - Containerized deployment
 
@@ -53,6 +57,34 @@ The platform supports:
 - Alert severity management
 - Alert history
 - Open and resolved states
+- Per-device/per-type alert cooldown (prevents alert storms)
+- Automatic resolution when the metric recovers
+- `resolved_at` tracking on alerts
+- Manual resolve endpoint for admins
+- Telegram alert notifications
+
+
+## 🌐 Network Discovery
+
+- LAN host discovery (nmap)
+- Automatic discovery submission from agents
+- Managed / unmanaged device tracking
+- Device approval flow
+
+
+## 🔌 USB Approval
+
+- USB connect/disconnect event detection
+- Admin approval requests
+- Approve / reject decision workflow
+- Policy-driven access control
+
+
+## 📝 Exam Mode
+
+- Global exam mode toggle
+- USB policy enforcement (`approval_required`)
+- Managed-lab policy integration
 
 
 ## 🔐 Security
@@ -156,19 +188,33 @@ SmartITMonitor/
 
 ├── backend/
 │   ├── app/
+│   │   ├── routers/          # API route modules
+│   │   └── services/         # alert/notification/heartbeat services
 │   ├── Dockerfile
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── .dockerignore
 │
 ├── frontend/
-│   ├── src/
+│   ├── src/                  # React app
+│   ├── nginx/default.conf    # reverse proxy for /api and /ws
 │   ├── Dockerfile
 │   └── package.json
 │
-├── prometheus/
-├── grafana/
+├── agent/
+│   ├── smartit_agent.py      # metrics agent (env-driven)
+│   ├── monitor.py            # legacy agent (token-based metrics)
+│   ├── agent.py              # legacy agent (config.json flow)
+│   ├── network/              # LAN discovery module
+│   ├── usb/                  # USB event monitor
+│   └── run.sh
+│
+├── monitoring/
+│   └── prometheus/prometheus.yml
+│
 ├── screenshots/
 ├── demo/
 ├── docker-compose.yml
+├── .env.example
 ├── README.md
 └── LICENSE
 ```
@@ -191,9 +237,15 @@ cd SmartITMonitor
 
 ## Build and Start
 
+This is the main deploy path. First, configure the environment
+(`cp .env.example .env` and fill it in — see Environment Configuration above).
+
 ```bash
 docker compose up -d --build
 ```
+
+On first start the backend seeds the bootstrap admin account
+(`ADMIN_USERNAME` / `ADMIN_PASSWORD`) and creates all database tables.
 
 ## Check Containers
 
@@ -213,23 +265,87 @@ docker compose down
 docker compose restart
 ```
 
+## Database Backup
+
+```bash
+./backup_db.sh
+```
+
+Writes a `pg_dump` of the compose database to `backups/` using the
+`POSTGRES_USER` / `POSTGRES_DB` values from `.env`.
+
 ---
 
 # 🔧 Environment Configuration
 
-Backend `.env`
+Copy the template and fill in real values (never commit `.env`):
 
-```env
-DATABASE_URL=postgresql://username:password@db:5432/database
-SECRET_KEY=your_secret_key
-ALGORITHM=HS256
+```bash
+cp .env.example .env
 ```
 
-Frontend `.env`
+Generate a strong `SECRET_KEY`:
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(64))"
+```
+
+Paste the result into `SECRET_KEY` in `.env`, then set
+`POSTGRES_PASSWORD` and `ADMIN_PASSWORD` to strong values.
 
 ```env
-VITE_API_URL=http://localhost:8000
+# PostgreSQL
+POSTGRES_USER=smartadmin
+POSTGRES_PASSWORD=change_this_password
+POSTGRES_DB=smart_monitor
+DATABASE_URL=postgresql://smartadmin:change_this_password@db:5432/smart_monitor
+
+# JWT
+SECRET_KEY=<generated-random-string>
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+
+# Telegram alert notifications (optional)
+TELEGRAM_ENABLED=true
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+
+# Bootstrap admin (seeded into the DB on first start)
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=change_this_admin_password
 ```
+
+The `docker-compose.yml` passes `TELEGRAM_*` and `ADMIN_*` to the backend
+container, so the admin account and Telegram alerts are configured through
+`.env` alone.
+
+### Agent configuration
+
+The monitoring agent reads its settings from `agent/.agent.env` (or the
+environment). Example:
+
+```bash
+SMARTIT_API_URL=http://localhost:8000
+SMARTIT_DEVICE_ID=1
+SMARTIT_AGENT_TOKEN=<device agent token>
+SMARTIT_INTERVAL=5
+SMARTIT_NETWORK_DISCOVERY_INTERVAL=300   # seconds between LAN discovery scans
+SMARTIT_NETWORK_DISCOVERY_RANGE=192.168.1.0/24
+```
+
+The agent runs a metrics loop (heartbeats + CPU/RAM/Disk submission) and, in a
+separate daemon thread, periodically runs LAN host discovery via `nmap` and
+submits the results to `POST /network/discovery`. Both loops are env-driven.
+
+Install the agent deps and start it with:
+
+```bash
+python3 -m venv .venv-agent
+.venv-agent/bin/pip install -r agent/requirements.txt
+./agent/run.sh
+```
+
+Devices can self-register through `POST /agent/register`, which returns the
+`device_id` and `agent_token` to use.
 
 ---
 
@@ -272,19 +388,66 @@ http://localhost:9090
 ## Authentication
 
 ```
-POST /register
-
-POST /login
+POST /auth/register      (admin or first-user bootstrap)
+POST /auth/login         (returns JWT)
+POST /auth/change-password
 ```
 
 
 ## Devices
 
 ```
-GET /devices
-
-POST /devices/{id}/metrics
+GET    /devices                    (authenticated)
+GET    /devices/{id}               (authenticated)
+POST   /devices                    (admin)
+PUT    /devices/{id}               (admin)
+DELETE /devices/{id}               (admin)
+GET    /devices/{id}/metrics       (authenticated)
+POST   /devices/{id}/metrics       (agent — X-Agent-Token header)
+POST   /agent/register             (agent self-registration)
 ```
+
+
+## Network Discovery
+
+```
+POST /network/discovery       (agent — X-Agent-Token header)
+GET  /network/devices         (authenticated)
+GET  /network/summary         (authenticated)
+POST /network/devices/{id}/managed   (admin)
+```
+
+
+## USB Approval
+
+```
+POST /usb/events                  (agent — X-Agent-Token header)
+GET  /usb/requests                (authenticated)
+POST /usb/requests/{id}/decision  (admin)
+```
+
+
+## Exam Mode
+
+```
+GET /exam-mode        (authenticated)
+PUT /exam-mode        (admin)
+```
+
+
+## Alerts
+
+```
+GET    /alerts                  (authenticated)
+GET    /alerts/history          (authenticated)
+GET    /alerts/analytics        (authenticated)
+DELETE /alerts/cleanup          (admin — purges resolved alerts older than 30 days)
+PATCH  /alerts/{id}/resolve     (admin — manual resolve, sets resolved_at)
+```
+
+Alert thresholds are evaluated on every metrics submission. When a metric
+recovers (drops back below threshold), all open alerts for that device/metric
+are automatically resolved and a WebSocket `alert_resolved` event is broadcast.
 
 
 ## Dashboard
@@ -297,7 +460,7 @@ GET /dashboard
 ## Monitoring
 
 ```
-GET /metrics
+GET /metrics    (Prometheus scrape target)
 
 GET /health
 ```
@@ -316,6 +479,7 @@ Used for:
 
 - Live device updates
 - Metric broadcasting
+- Alert creation and automatic resolution events
 - Dashboard refresh events
 
 ---
@@ -372,6 +536,33 @@ The Alerts section provides centralized monitoring of system and security events
 
 ---
 
+# 🧪 Testing
+
+## Backend (pytest)
+
+Run the backend test suite (uses the Docker database via the `db_session`
+fixture — do not run against a stale local Postgres schema):
+
+```bash
+cd backend
+./venv/bin/python -m pytest tests/ -q
+```
+
+Covers auth, devices, alerts (including auto-resolve on recovery), network
+discovery, USB approval, and exam mode.
+
+## Frontend (smoke tests)
+
+```bash
+cd frontend
+npm install
+npm run smoke   # runs frontend/smoke-test.mjs
+npm run lint    # eslint (0 warnings expected)
+npm run build   # production build
+```
+
+---
+
 # 👥 Team Collaboration
 
 | Member | GitHub | Role |
@@ -394,6 +585,10 @@ The Alerts section provides centralized monitoring of system and security events
 - [x] Prometheus integration completed
 - [x] Grafana monitoring completed
 - [x] Docker deployment completed
+- [x] Alert cooldown and auto-resolve on recovery completed
+- [x] Agent-side network discovery integration completed
+- [x] Backend test suite completed (35 tests)
+- [x] Frontend smoke tests + lint completed
 - [x] Documentation completed
 
 ---
@@ -404,8 +599,6 @@ The Alerts section provides centralized monitoring of system and security events
 - AI anomaly detection
 - Cloud deployment
 - Kubernetes support
-- Email notifications
-- Telegram alerts
 
 ---
 

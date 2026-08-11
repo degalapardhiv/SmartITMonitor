@@ -1,4 +1,5 @@
 import smtplib
+import logging
 
 from email.mime.text import MIMEText
 
@@ -10,6 +11,18 @@ from app.email_settings_model import EmailSetting
 from app.email_history_model import EmailHistory
 from app.services.notification_service import save_notification
 
+
+logger = logging.getLogger(__name__)
+
+
+def _truncate(text, limit=500):
+
+    text = str(text)
+
+    if len(text) > limit:
+        return text[:limit] + "..."
+
+    return text
 
 
 def email_enabled():
@@ -61,9 +74,7 @@ def send_email(subject, message, alert_id=None):
 
         if not config:
 
-            print(
-                "Email config missing"
-            )
+            logger.warning("Email config missing; skipping send")
 
             return
 
@@ -76,30 +87,41 @@ def send_email(subject, message, alert_id=None):
         msg["To"] = config.receiver
 
 
+        server = None
 
-        server = smtplib.SMTP(
-            config.smtp_server,
-            config.smtp_port
-        )
+        try:
 
+            server = smtplib.SMTP(
+                config.smtp_server,
+                config.smtp_port
+            )
 
-        server.starttls()
-
-
-        server.login(
-            config.username,
-            config.password
-        )
+            server.starttls()
 
 
-        server.send_message(msg)
+            server.login(
+                config.username,
+                config.password
+            )
+
+
+            server.send_message(msg)
+
+        finally:
+
+            if server is not None:
+
+                try:
+                    server.quit()
+                except Exception:
+                    pass
 
 
         save_notification(
             alert_id,
             "Email",
             "SENT",
-            subject
+            _truncate(subject)
         )
 
 
@@ -113,16 +135,24 @@ def send_email(subject, message, alert_id=None):
         db.commit()
 
 
-        server.quit()
-
-
-
     except Exception as e:
 
-        print(
-            "Email error:",
-            e
+        logger.error(
+            "Email error: %s",
+            e,
         )
+
+        try:
+
+            save_notification(
+                alert_id,
+                "Email",
+                "FAILED",
+                _truncate(e)
+            )
+
+        except Exception:
+            pass
 
 
     finally:

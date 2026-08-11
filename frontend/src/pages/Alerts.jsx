@@ -1,6 +1,18 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 
+function formatDateTime(value){
+
+  if(!value) return "--";
+
+  const date = new Date(value);
+
+  if(isNaN(date.getTime())) return "--";
+
+  return date.toLocaleString();
+
+}
+
 export default function Alerts(){
 
     const [alerts,setAlerts] = useState([]);
@@ -47,6 +59,8 @@ export default function Alerts(){
                         <th>Value</th>
                         <th>Message</th>
                         <th>Severity</th>
+                        <th>Status</th>
+                        <th>Time</th>
                     </tr>
                 </thead>
 
@@ -65,7 +79,7 @@ export default function Alerts(){
                             </td>
 
                             <td>
-                                {alert.value || "-"}
+                                {alert.value ?? "-"}
                             </td>
 
                             <td>
@@ -74,6 +88,14 @@ export default function Alerts(){
 
                             <td>
                                 {alert.severity || "-"}
+                            </td>
+
+                            <td>
+                                {alert.status || "OPEN"}
+                            </td>
+
+                            <td>
+                                {formatDateTime(alert.created_at)}
                             </td>
 
                         </tr>

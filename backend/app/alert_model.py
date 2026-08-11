@@ -56,3 +56,8 @@ class Alert(Base):
         DateTime,
         default=datetime.utcnow
     )
+
+    resolved_at = Column(
+        DateTime,
+        nullable=True
+    )

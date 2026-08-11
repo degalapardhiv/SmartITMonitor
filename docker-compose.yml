@@ -14,27 +14,25 @@ services:
         max-size: "10m"
         max-file: "5"
 
+    # NOTE: POSTGRES_PASSWORD is read from .env — never hardcode it in
+    # this file. Set a strong value in .env (see .env.example).
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-smartadmin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-smart_monitor}
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
-
 
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+          "pg_isready -U ${POSTGRES_USER:-smartadmin} -d ${POSTGRES_DB:-smart_monitor}"
         ]
       interval: 10s
       timeout: 5s
       retries: 5
-
-
 
   backend:
 
@@ -52,21 +50,25 @@ services:
         max-file: "5"
 
     depends_on:
-
       db:
         condition: service_healthy
 
     environment:
-
       DATABASE_URL: ${DATABASE_URL}
-      SECRET_KEY: ${SECRET_KEY}
-      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      # Telegram alert notifications (optional — empty bot token disables)
+      TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-true}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      # Bootstrap admin credentials (used to seed the first admin account)
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMe123!}
 
     ports:
       - "8000:8000"
 
     healthcheck:
-
       test:
         [
           "CMD",
@@ -74,12 +76,9 @@ services:
           "-c",
           "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
         ]
-
       interval: 20s
       timeout: 5s
       retries: 5
-
-
 
   frontend:
 
@@ -97,14 +96,11 @@ services:
         max-file: "5"
 
     depends_on:
-
       backend:
         condition: service_healthy
 
     ports:
       - "80:80"
-
-
 
   prometheus:
 
@@ -120,7 +116,11 @@ services:
     ports:
       - "9090:9090"
 
-
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   grafana:
 
@@ -138,7 +138,6 @@ services:
 
     volumes:
       - grafana_data:/var/lib/grafana
-
 
 volumes:
 

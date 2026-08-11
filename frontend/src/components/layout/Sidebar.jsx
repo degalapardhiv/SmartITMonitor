@@ -6,11 +6,15 @@ function Sidebar() {
     { title: "Devices", path: "/devices" },
     { title: "Departments", path: "/departments" },
     { title: "Alerts", path: "/alerts" },
-{ title: "Alert Center", path: "/alert-center" },
+    { title: "Alert Center", path: "/alert-center" },
     { title: "Reports", path: "/reports" },
+    { title: "Network Discovery", path: "/network-discovery" },
+    { title: "USB Approval", path: "/usb-approval" },
+    { title: "Exam Mode", path: "/exam-mode" },
+    { title: "Lab 2", path: "/lab2" },
     { title: "Settings", path: "/settings" },
     { title: "Email History", path: "/email-history" },
-{ title: "Notification History", path: "/notification-history" },
+    { title: "Notification History", path: "/notification-history" },
   ];
 
   return (

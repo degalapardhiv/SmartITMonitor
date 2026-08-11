@@ -9,56 +9,38 @@ function DeviceDetails(){
 
   const { id } = useParams();
 
-  const liveData = useWebSocket();
-
   const [device,setDevice] = useState(null);
 
   const [history,setHistory] = useState([]);
 
 
-  useEffect(()=>{
+  useWebSocket((message) => {
 
-    loadDevice();
+    if (!message || !message.type) return;
 
-    loadMetrics();
+    if (
+      message.type === "device_update" &&
+      message.device &&
+      Number(message.device.id) === Number(id)
+    ) {
 
-  },[]);
+      setDevice(
+        message.device
+      );
 
-
-  useEffect(()=>{
-
-    if(
-      liveData &&
-      liveData.type === "device_update"
-    ){
-
-      if(
-        liveData.device.id === Number(id)
-      ){
-
-        setDevice(
-          liveData.device
-        );
-
-        setHistory(prev => [
-          ...prev.slice(-29),
-          {
-            time: new Date().toLocaleTimeString(),
-            cpu: liveData.device.cpu,
-            ram: liveData.device.ram,
-            disk: liveData.device.disk
-          }
-        ]);
-
-      }
+      setHistory(prev => [
+        ...prev.slice(-29),
+        {
+          time: new Date().toLocaleTimeString(),
+          cpu: message.device.cpu,
+          ram: message.device.ram,
+          disk: message.device.disk
+        }
+      ]);
 
     }
 
-  },[liveData,id]);
-
-
-
-
+  });
 
 
   async function loadMetrics(){
@@ -122,6 +104,19 @@ function DeviceDetails(){
   }
 
 
+  useEffect(()=>{
+
+    async function sync() {
+      await loadDevice();
+      await loadMetrics();
+    }
+
+    sync();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
+
 
   if(!device){
 
@@ -135,6 +130,9 @@ function DeviceDetails(){
 
   }
 
+
+  const isOnline =
+    String(device.status || "").toLowerCase() === "online";
 
 
   return (
@@ -169,7 +167,7 @@ function DeviceDetails(){
             {" "}
             <span
               className={
-                device.status === "Online"
+                isOnline
                   ? "text-green-400 font-bold"
                   : "text-red-400 font-bold"
               }
@@ -181,19 +179,19 @@ function DeviceDetails(){
 
           <p>
             CPU:
-            {device.cpu}%
+            {device.cpu ?? 0}%
           </p>
 
 
           <p>
             RAM:
-            {device.ram}%
+            {device.ram ?? 0}%
           </p>
 
 
           <p>
             Disk:
-            {device.disk}%
+            {device.disk ?? 0}%
           </p>
 
 

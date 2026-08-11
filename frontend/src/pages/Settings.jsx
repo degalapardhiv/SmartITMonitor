@@ -1,25 +1,53 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import Layout from "../components/layout/Layout";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/auth-context";
+import api from "../services/api";
+import { getWsUrl } from "../hooks/useWebSocket";
 
 function Settings() {
 
-  const { role } = useAuth();
+  const { role, username } = useAuth();
+
+  const isViewer =
+    String(role || "").toLowerCase() === "viewer";
 
   const [backendStatus, setBackendStatus] = useState(
     "Checking..."
   );
 
-
   const [wsStatus, setWsStatus] = useState(
     "Checking..."
   );
 
+  const [message, setMessage] = useState(null);
+
+  const messageTimer = useRef(null);
+
+
+  function showMessage(type, text) {
+
+    if (messageTimer.current) {
+      clearTimeout(messageTimer.current);
+    }
+
+    setMessage({ type, text });
+
+    messageTimer.current = setTimeout(() => {
+      setMessage(null);
+      messageTimer.current = null;
+    }, 5000);
+
+  }
+
 
   useEffect(() => {
 
-    checkBackend();
+    return () => {
+      if (messageTimer.current) {
+        clearTimeout(messageTimer.current);
+      }
+    };
 
   }, []);
 
@@ -28,21 +56,13 @@ function Settings() {
 
     try{
 
-      const response = await fetch(
-        "/api/health"
+      const response = await api.get(
+        "/health"
       );
 
-
-      if(response.ok){
-
-        setBackendStatus("Online");
-
-      }
-      else{
-
-        setBackendStatus("Offline");
-
-      }
+      setBackendStatus(
+        response.status === 200 ? "Online" : "Offline"
+      );
 
     }
     catch{
@@ -56,8 +76,19 @@ function Settings() {
 
   useEffect(() => {
 
+    async function sync() {
+      await checkBackend();
+    }
+
+    sync();
+
+  }, []);
+
+
+  useEffect(() => {
+
     const socket = new WebSocket(
-      "/ws"
+      getWsUrl()
     );
 
 
@@ -84,248 +115,429 @@ function Settings() {
     };
 
 
-    
-}, []);
+    return () => socket.close();
+
+  }, []);
 
 
-  const [apiUrl, setApiUrl] = useState(
-    "/api"
-  );
+  const [telegramEnabled, setTelegramEnabled] = useState(false);
 
-  const [notifications, setNotifications] = useState(true);
+  const [emailEnabled, setEmailEnabled] = useState(false);
 
-const [telegramEnabled, setTelegramEnabled] = useState(false);
+  const [telegramBusy, setTelegramBusy] = useState(false);
 
-const [emailEnabled, setEmailEnabled] = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
 
-const [smtpConfig, setSmtpConfig] = useState({
-  smtp_server:"",
-  smtp_port:"",
-  username:"",
-  password:"",
-  receiver:""
-});
-
-
-useEffect(() => {
-
-  loadSmtpConfig();
-
-}, []);
-
-
-
-async function loadSmtpConfig(){
-
-  try{
-
-    const res = await fetch(
-      "/api/settings/email/config"
-    );
-
-    const data = await res.json();
-
-
-    if(data.configured){
-
-      setSmtpConfig({
-
-        smtp_server:data.smtp_server || "",
-        smtp_port:data.smtp_port || "",
-        username:data.username || "",
-        password:"",
-        receiver:data.receiver || ""
-
-      });
-
-    }
-
-
-  }
-  catch(err){
-
-    console.log(err);
-
-  }
-
-}
-
-
-
-function updateSmtp(field,value){
-
-  setSmtpConfig({
-
-    ...smtpConfig,
-
-    [field]:value
-
+  const [smtpConfig, setSmtpConfig] = useState({
+    smtp_server:"",
+    smtp_port:"",
+    username:"",
+    password:"",
+    receiver:""
   });
 
-}
+  const [smtpBusy, setSmtpBusy] = useState(false);
 
 
+  async function loadSmtpConfig(){
+
+    try{
+
+      const res = await api.get(
+        "/settings/email/config"
+      );
+
+      const data = res.data;
 
 
+      if(data.configured){
 
-async function saveSmtpConfig(){
+        setSmtpConfig({
+          smtp_server:data.smtp_server || "",
+          smtp_port:data.smtp_port || "",
+          username:data.username || "",
+          password:"",
+          receiver:data.receiver || ""
+        });
 
-  const params = new URLSearchParams(
-    smtpConfig
-  );
+      }
 
-
-  await fetch(
-    `/api/settings/email/config?${params}`,
-    {
-      method:"POST"
     }
-  );
+    catch(err){
 
+      console.error(err);
 
-  alert(
-    "SMTP settings saved"
-  );
+      showMessage("error", "Failed to load SMTP configuration");
 
-}
-
-
-
-
-useEffect(() => {
-
-  loadEmailStatus();
-
-}, []);
-
-
-
-async function loadEmailStatus(){
-
-  try{
-
-    const res = await fetch(
-      "/api/settings/email"
-    );
-
-    const data = await res.json();
-
-    setEmailEnabled(
-      data.email_enabled
-    );
-
-  }
-  catch(err){
-
-    console.log(err);
+    }
 
   }
 
-}
 
 
+  useEffect(() => {
 
-async function toggleEmail(){
-
-  const value = !emailEnabled;
-
-
-  await fetch(
-    `/api/settings/email?enabled=${value}`,
-    {
-      method:"POST"
+    async function sync() {
+      await loadSmtpConfig();
     }
-  );
 
+    sync();
 
-  setEmailEnabled(value);
-
-}
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
 
-useEffect(() => {
+  function updateSmtp(field,value){
 
-  loadTelegramStatus();
+    setSmtpConfig({
 
-}, []);
+      ...smtpConfig,
 
+      [field]:value
 
-async function loadTelegramStatus(){
-
-  try{
-
-    const res = await fetch("/api/settings/telegram");
-
-    const data = await res.json();
-
-    setTelegramEnabled(
-      data.telegram_enabled
-    );
-
-  }
-  catch(err){
-
-    console.log(err);
+    });
 
   }
 
-}
 
 
-async function toggleTelegram(){
 
-  const value = !telegramEnabled;
+  async function saveSmtpConfig(){
 
-  await fetch(
-    `/api/settings/telegram?enabled=${value}`,
-    {
-      method:"POST"
+    setSmtpBusy(true);
+
+    try{
+
+      const params = {
+        smtp_server: smtpConfig.smtp_server,
+        smtp_port: Number(smtpConfig.smtp_port) || 0,
+        username: smtpConfig.username,
+        password: smtpConfig.password,
+        receiver: smtpConfig.receiver
+      };
+
+      await api.post(
+        "/settings/email/config",
+        null,
+        { params }
+      );
+
+      showMessage("success", "SMTP settings saved");
+
     }
-  );
+    catch(err){
 
-  setTelegramEnabled(value);
+      console.error(err);
 
-}
+      showMessage("error", "Failed to save SMTP settings");
 
-
-
-  const [darkMode, setDarkMode] = useState(true);
-
-
-async function testTelegram(){
-
-  await fetch(
-    "/api/settings/test-telegram",
-    {
-      method:"POST"
     }
-  );
+    finally{
 
-  alert(
-    "Telegram test sent"
-  );
+      setSmtpBusy(false);
 
-}
-
-
-
-async function testEmail(){
-
-  await fetch(
-    "/api/settings/test-email",
-    {
-      method:"POST"
     }
+
+  }
+
+
+
+
+  async function loadEmailStatus(){
+
+    try{
+
+      const res = await api.get(
+        "/settings/email"
+      );
+
+      const data = res.data;
+
+      setEmailEnabled(
+        Boolean(data.email_enabled)
+      );
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      showMessage("error", "Failed to load email settings");
+
+    }
+
+  }
+
+
+
+  useEffect(() => {
+
+    async function sync() {
+      await loadEmailStatus();
+    }
+
+    sync();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
+
+  async function toggleEmail(){
+
+    if (emailBusy) return;
+
+    const value = !emailEnabled;
+
+    setEmailBusy(true);
+
+    try{
+
+      await api.post(
+        "/settings/email",
+        null,
+        { params: { enabled: value } }
+      );
+
+      setEmailEnabled(value);
+
+      showMessage("success", "Email alerts updated");
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      showMessage("error", "Failed to update email alerts");
+
+    }
+    finally{
+
+      setEmailBusy(false);
+
+    }
+
+  }
+
+
+
+
+  async function loadTelegramStatus(){
+
+    try{
+
+      const res = await api.get("/settings/telegram");
+
+      const data = res.data;
+
+      setTelegramEnabled(
+        Boolean(data.telegram_enabled)
+      );
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      showMessage("error", "Failed to load Telegram settings");
+
+    }
+
+  }
+
+
+  useEffect(() => {
+
+    async function sync() {
+      await loadTelegramStatus();
+    }
+
+    sync();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
+  async function toggleTelegram(){
+
+    if (telegramBusy) return;
+
+    const value = !telegramEnabled;
+
+    setTelegramBusy(true);
+
+    try{
+
+      await api.post(
+        "/settings/telegram",
+        null,
+        { params: { enabled: value } }
+      );
+
+      setTelegramEnabled(value);
+
+      showMessage("success", "Telegram alerts updated");
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      showMessage("error", "Failed to update Telegram alerts");
+
+    }
+    finally{
+
+      setTelegramBusy(false);
+
+    }
+
+  }
+
+
+
+  const [notifications, setNotifications] = useState(
+    () => localStorage.getItem("notificationsEnabled") !== "false"
   );
 
-  alert(
-    "Email test sent"
+  const [darkMode, setDarkMode] = useState(
+    () => localStorage.getItem("darkMode") !== "false"
   );
 
-}
 
+  useEffect(() => {
+
+    document.body.classList.toggle("dark", darkMode);
+
+    document.body.dataset.theme = darkMode ? "dark" : "light";
+
+  }, [darkMode]);
+
+
+  function savePreferences(){
+
+    localStorage.setItem("notificationsEnabled", String(notifications));
+    localStorage.setItem("darkMode", String(darkMode));
+
+    showMessage("success", "Preferences saved");
+
+  }
+
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+
+  const [passwordBusy, setPasswordBusy] = useState(false);
+
+
+  async function changePassword(e){
+
+    e.preventDefault();
+
+    const { currentPassword, newPassword, confirmPassword } = passwordForm;
+
+    if (!currentPassword) {
+
+      showMessage("error", "Current password is required");
+      return;
+
+    }
+
+    if (newPassword.length < 8) {
+
+      showMessage("error", "New password must be at least 8 characters");
+      return;
+
+    }
+
+    if (newPassword !== confirmPassword) {
+
+      showMessage("error", "New password and confirmation do not match");
+      return;
+
+    }
+
+    setPasswordBusy(true);
+
+    try{
+
+      const formData = new FormData();
+      formData.append("current_password", currentPassword);
+      formData.append("new_password", newPassword);
+
+      await api.post("/change-password", formData);
+
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+
+      showMessage("success", "Password changed successfully");
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      const detail =
+        err?.response?.data?.detail ||
+        "Failed to change password";
+
+      showMessage("error", detail);
+
+    }
+    finally{
+
+      setPasswordBusy(false);
+
+    }
+
+  }
+
+
+  async function testEmail(){
+
+    try{
+
+      await api.post("/settings/test-email");
+
+      showMessage("success", "Email test sent");
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      showMessage("error", "Failed to send email test");
+
+    }
+
+  }
+
+
+  async function testTelegram(){
+
+    try{
+
+      await api.post("/settings/test-telegram");
+
+      showMessage("success", "Telegram test sent");
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      showMessage("error", "Failed to send Telegram test");
+
+    }
+
+  }
 
 
   return (
@@ -347,6 +559,19 @@ async function testEmail(){
         </div>
 
       </div>
+
+      {message && (
+        <div
+          className={
+            message.type === "error"
+            ? "mb-6 bg-red-600 text-white p-4 rounded-lg"
+            : "mb-6 bg-green-600 text-white p-4 rounded-lg"
+          }
+        >
+          {message.text}
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-2 gap-8">
 
         {/* User Profile */}
@@ -367,7 +592,7 @@ async function testEmail(){
 
               <input
                 type="text"
-                value="admin"
+                value={username || "admin"}
                 readOnly
                 className="w-full bg-slate-700 rounded-lg p-3"
               />
@@ -389,12 +614,11 @@ async function testEmail(){
 
             </div>
 
-            <button
-              onClick={saveSmtpConfig}
-              className="bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg"
-            >
-              Edit Profile
-            </button>
+            {isViewer && (
+              <p className="text-yellow-400 text-sm">
+                You have viewer access. Administrative actions are hidden.
+              </p>
+            )}
 
           </div>
 
@@ -419,20 +643,16 @@ async function testEmail(){
 
               <input
                 type="text"
-                value={apiUrl}
-                onChange={(e) =>
-                  setApiUrl(e.target.value)
-                }
+                value="/api"
+                readOnly
                 className="w-full bg-slate-700 rounded-lg p-3"
               />
 
             </div>
 
-            <button
-              className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg"
-            >
-              Save API Settings
-            </button>
+            <p className="text-gray-400 text-sm">
+              The API URL is fixed by the application deployment / reverse proxy.
+            </p>
 
           </div>
 
@@ -495,6 +715,7 @@ async function testEmail(){
                 type="checkbox"
                 checked={telegramEnabled}
                 onChange={toggleTelegram}
+                disabled={telegramBusy}
                 className="w-5 h-5"
               />
 
@@ -520,6 +741,7 @@ async function testEmail(){
                 type="checkbox"
                 checked={emailEnabled}
                 onChange={toggleEmail}
+                disabled={emailBusy}
                 className="w-5 h-5"
               />
 
@@ -552,6 +774,7 @@ async function testEmail(){
             </div>
 
             <button
+              onClick={savePreferences}
               className="bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg"
             >
               Save Preferences
@@ -617,20 +840,25 @@ async function testEmail(){
             />
 
 
-            <button
-              onClick={saveSmtpConfig}
-              className="bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg"
-            >
-              Save SMTP Settings
-            </button>
+            <div className="flex gap-3">
+
+              <button
+                onClick={saveSmtpConfig}
+                disabled={smtpBusy}
+                className="bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg disabled:opacity-50"
+              >
+                {smtpBusy ? "Saving..." : "Save SMTP Settings"}
+              </button>
 
 
-            <button
-              onClick={testEmail}
-              className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg"
-            >
-              Test Email
-            </button>
+              <button
+                onClick={testEmail}
+                className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg"
+              >
+                Test Email
+              </button>
+
+            </div>
 
 
           </div>
@@ -638,7 +866,7 @@ async function testEmail(){
         </div>
 
 
-        {/* Database Status */}
+        {/* System Status */}
 
         <div className="bg-slate-800 rounded-xl p-6">
 
@@ -700,6 +928,17 @@ async function testEmail(){
 
             </div>
 
+            <div className="flex gap-3 pt-2">
+
+              <button
+                onClick={testTelegram}
+                className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg"
+              >
+                Test Telegram
+              </button>
+
+            </div>
+
           </div>
 
         </div>
@@ -715,7 +954,7 @@ async function testEmail(){
             Change Password
           </h2>
 
-          <div className="space-y-5">
+          <form className="space-y-5" onSubmit={changePassword}>
 
             <div>
 
@@ -726,6 +965,11 @@ async function testEmail(){
               <input
                 type="password"
                 placeholder="Current Password"
+                value={passwordForm.currentPassword}
+                onChange={(e)=>setPasswordForm({
+                  ...passwordForm,
+                  currentPassword:e.target.value
+                })}
                 className="w-full bg-slate-700 rounded-lg p-3"
               />
 
@@ -740,6 +984,11 @@ async function testEmail(){
               <input
                 type="password"
                 placeholder="New Password"
+                value={passwordForm.newPassword}
+                onChange={(e)=>setPasswordForm({
+                  ...passwordForm,
+                  newPassword:e.target.value
+                })}
                 className="w-full bg-slate-700 rounded-lg p-3"
               />
 
@@ -754,18 +1003,25 @@ async function testEmail(){
               <input
                 type="password"
                 placeholder="Confirm Password"
+                value={passwordForm.confirmPassword}
+                onChange={(e)=>setPasswordForm({
+                  ...passwordForm,
+                  confirmPassword:e.target.value
+                })}
                 className="w-full bg-slate-700 rounded-lg p-3"
               />
 
             </div>
 
             <button
-              className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg"
+              type="submit"
+              disabled={passwordBusy}
+              className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg disabled:opacity-50"
             >
-              Update Password
+              {passwordBusy ? "Updating..." : "Update Password"}
             </button>
 
-          </div>
+          </form>
 
         </div>
 
@@ -972,45 +1228,6 @@ async function testEmail(){
               </div>
 
             </div>
-
-          </div>
-
-        </div>
-
-
-        {/* Maintenance */}
-
-        <div className="bg-slate-800 rounded-xl p-6">
-
-          <h2 className="text-2xl font-bold mb-6">
-            Maintenance
-          </h2>
-
-          <div className="space-y-4">
-
-            <button
-              className="w-full bg-cyan-600 hover:bg-cyan-700 py-3 rounded-lg font-semibold"
-            >
-              Clear Cache
-            </button>
-
-            <button
-              className="w-full bg-indigo-600 hover:bg-indigo-700 py-3 rounded-lg font-semibold"
-            >
-              Backup Database
-            </button>
-
-            <button
-              className="w-full bg-orange-600 hover:bg-orange-700 py-3 rounded-lg font-semibold"
-            >
-              Restore Backup
-            </button>
-
-            <button
-              className="w-full bg-red-600 hover:bg-red-700 py-3 rounded-lg font-semibold"
-            >
-              Restart Monitoring Service
-            </button>
 
           </div>
 

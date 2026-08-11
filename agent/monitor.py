@@ -5,7 +5,9 @@ import requests
 import psutil
 
 from config import (
-    SERVER_URL,
+    API_URL,
+    DEVICE_ID,
+    AGENT_TOKEN,
     DEPARTMENT,
     LAB,
     LOCATION,
@@ -66,8 +68,61 @@ print(f"Location   : {LOCATION}")
 
 print("=" * 60)
 print("Agent Started Successfully")
-print("Sending metrics every 30 seconds...")
+print(f"Sending metrics every {INTERVAL} seconds...")
 print("=" * 60)
+
+
+# ==========================================
+# Agent Registration (token-based flow)
+# ==========================================
+
+def register():
+
+    global DEVICE_ID, AGENT_TOKEN
+
+    print("=" * 60)
+    print("Registering agent with backend...")
+    print("=" * 60)
+
+    payload = {
+        "hostname": HOSTNAME,
+        "ip": IP_ADDRESS,
+        "os": OPERATING_SYSTEM,
+    }
+
+    try:
+
+        response = requests.post(
+            f"{API_URL}/agent/register",
+            json=payload,
+            timeout=REQUEST_TIMEOUT,
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        DEVICE_ID = str(data.get("device_id", ""))
+        AGENT_TOKEN = str(data.get("agent_token", ""))
+
+        if not DEVICE_ID or not AGENT_TOKEN:
+            raise RuntimeError(
+                "registration response missing device_id/agent_token"
+            )
+
+        print(f"Registered device : {DEVICE_ID}")
+
+    except Exception as error:
+
+        print("=" * 60)
+        print("ERROR: Agent registration failed.")
+        print("The backend now requires a registered device + agent token.")
+        print("Set SMARTIT_API_URL, SMARTIT_DEVICE_ID and SMARTIT_AGENT_TOKEN")
+        print("in the environment (or agent/.agent.env) and re-run this agent.")
+        print(f"Detail: {error}")
+        print("=" * 60)
+
+        raise SystemExit(1)
 
 
 # ==========================================
@@ -83,19 +138,9 @@ def collect_metrics():
     disk = psutil.disk_usage("/").percent
 
     return {
-        "hostname": HOSTNAME,
-        "ip": IP_ADDRESS,
-
         "cpu": cpu,
         "ram": ram,
         "disk": disk,
-
-        "status": "Online",
-
-        "department": DEPARTMENT,
-        "lab": LAB,
-        "location": LOCATION,
-        "os": OPERATING_SYSTEM,
     }
 
 # ==========================================
@@ -104,14 +149,23 @@ def collect_metrics():
 
 def send_metrics():
 
-    device = collect_metrics()
+    metrics = collect_metrics()
+
+    url = f"{API_URL}/devices/{DEVICE_ID}/metrics"
 
     try:
 
         response = requests.post(
-            SERVER_URL,
-            json=device,
-            timeout=REQUEST_TIMEOUT
+            url,
+            params={
+                "cpu": metrics["cpu"],
+                "ram": metrics["ram"],
+                "disk": metrics["disk"],
+            },
+            headers={
+                "X-Agent-Token": AGENT_TOKEN,
+            },
+            timeout=REQUEST_TIMEOUT,
         )
 
         response.raise_for_status()
@@ -124,28 +178,15 @@ def send_metrics():
 
         print(f"Status     : {response.status_code}")
 
-        print(f"Hostname   : {device['hostname']}")
+        print(f"Hostname   : {HOSTNAME}")
 
-        print(f"IP Address : {device['ip']}")
+        print(f"IP Address : {IP_ADDRESS}")
 
-        print(f"CPU        : {device['cpu']:.1f}%")
+        print(f"CPU        : {metrics['cpu']:.1f}%")
 
-        print(f"RAM        : {device['ram']:.1f}%")
+        print(f"RAM        : {metrics['ram']:.1f}%")
 
-        print(f"Disk       : {device['disk']:.1f}%")
-
-        try:
-
-            print(
-                "Server     :",
-                response.json()
-            )
-
-        except Exception:
-
-            print(
-                "Server     : No JSON response"
-            )
+        print(f"Disk       : {metrics['disk']:.1f}%")
 
     except requests.exceptions.Timeout:
 
@@ -156,12 +197,14 @@ def send_metrics():
 
         print("-" * 60)
         print("ERROR: Unable to connect to backend.")
-        print(f"Backend URL: {SERVER_URL}")
+        print(f"Backend URL: {url}")
 
     except requests.exceptions.HTTPError as error:
 
         print("-" * 60)
         print(f"HTTP Error : {error}")
+        print("Check that SMARTIT_DEVICE_ID / SMARTIT_AGENT_TOKEN match")
+        print("a device registered on the backend.")
 
     except Exception as error:
 
@@ -183,7 +226,7 @@ def main():
             send_metrics()
 
             print("-" * 60)
-            print("Next update in 30 seconds...")
+            print(f"Next update in {INTERVAL} seconds...")
             print("-" * 60)
 
             time.sleep(INTERVAL)
@@ -213,7 +256,7 @@ def check_backend():
     try:
 
         response = requests.get(
-            SERVER_URL.replace("/devices", "/health"),
+            f"{API_URL}/health",
             timeout=5
         )
 
@@ -248,15 +291,7 @@ def check_backend():
 
 if __name__ == "__main__":
 
-    if check_backend():
-
-        print()
-        print("Starting Smart IT Monitor...")
-        print()
-
-        main()
-
-    else:
+    if not check_backend():
 
         print()
         print("Backend is unavailable.")
@@ -265,3 +300,12 @@ if __name__ == "__main__":
 
         exit(1)
 
+    if not DEVICE_ID or not AGENT_TOKEN:
+
+        register()
+
+    print()
+    print("Starting Smart IT Monitor...")
+    print()
+
+    main()

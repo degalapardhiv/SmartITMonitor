@@ -8,7 +8,8 @@ from sqlalchemy import text
 from .database import SessionLocal
 from .auth_dependency import get_current_user
 from .agent_auth import get_agent_device
-from .services.lab_alert_service import create_lab_alert
+from .role_dependency import require_admin
+from .services.lab_alert_service import create_lab_alert, resolve_lab_alert
 
 router = APIRouter(prefix="/usb", tags=["USB Approval"])
 
@@ -186,7 +187,7 @@ def get_usb_requests(
 def decide_usb_request(
     request_id: int,
     decision: USBDecision,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin),
     db=Depends(get_db),
 ):
     value = decision.decision.strip().lower()
@@ -199,9 +200,16 @@ def decide_usb_request(
 
     request = db.execute(
         text("""
-            SELECT id, status
+            SELECT
+                usb_requests.id,
+                usb_requests.status,
+                usb_requests.device_id,
+                usb_requests.usb_id,
+                usb_requests.description,
+                devices.hostname
             FROM usb_requests
-            WHERE id = :request_id
+            LEFT JOIN devices ON devices.id = usb_requests.device_id
+            WHERE usb_requests.id = :request_id
         """),
         {"request_id": request_id},
     ).mappings().first()
@@ -256,5 +264,15 @@ def decide_usb_request(
 
     updated = dict(result.mappings().first())
     db.commit()
+
+    resolve_lab_alert(
+        db,
+        device_id=request["device_id"],
+        alert_type="USB_PENDING",
+        message=(
+            f"USB approval required on {request['hostname'] or ''}: "
+            f"{request['description'] or request['usb_id'] or 'Unknown USB'}"
+        ),
+    )
 
     return updated

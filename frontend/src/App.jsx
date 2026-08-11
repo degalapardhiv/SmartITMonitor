@@ -1,3 +1,4 @@
+import "./styles/demo-ui.css";
 import { lazy, Suspense } from "react";
 
 import {
@@ -7,179 +8,193 @@ import {
   Navigate,
 } from "react-router-dom";
 
-import { useAuth } from "./context/AuthContext";
+import { useAuth } from "./context/auth-context";
 
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import Layout from "./components/layout/Layout";
 
 import Login from "./pages/Login";
 import Lab2 from "./pages/Lab2";
+import NetworkDiscovery from "./pages/NetworkDiscovery";
 import USBApproval from "./pages/USBApproval";
 import ExamMode from "./pages/ExamMode";
-const Dashboard = lazy(()=>import("./pages/Dashboard"));
-const Devices = lazy(()=>import("./pages/Devices"));
-const DeviceDetails = lazy(()=>import("./pages/DeviceDetails"));
-const Departments = lazy(()=>import("./pages/Departments"));
-const Alerts = lazy(()=>import("./pages/Alerts"));
-const AlertCenter = lazy(()=>import("./pages/AlertCenter"));
-const Reports = lazy(()=>import("./pages/Reports"));
-const Settings = lazy(()=>import("./pages/Settings"));
-const EmailHistory = lazy(()=>import("./pages/EmailHistory"));
-const NotificationHistory = lazy(()=>import("./pages/NotificationHistory"));
+
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Devices = lazy(() => import("./pages/Devices"));
+const DeviceDetails = lazy(() => import("./pages/DeviceDetails"));
+const Departments = lazy(() => import("./pages/Departments"));
+const Alerts = lazy(() => import("./pages/Alerts"));
+const AlertCenter = lazy(() => import("./pages/AlertCenter"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Settings = lazy(() => import("./pages/Settings"));
+const EmailHistory = lazy(() => import("./pages/EmailHistory"));
+const NotificationHistory = lazy(() => import("./pages/NotificationHistory"));
 
 function App() {
   const { isAuthenticated } = useAuth();
 
   return (
     <BrowserRouter>
+      <Suspense fallback={<div className="text-white p-10">Loading...</div>}>
 
-      <Suspense fallback={
-        <div className="text-white p-10">
-          Loading...
-        </div>
-      }>
+        <Routes>
 
-      <Routes>
+          <Route
+            path="/login"
+            element={
+              isAuthenticated
+                ? <Navigate to="/" replace />
+                : <Login />
+            }
+          />
 
-        {/* Redirect Login */}
-        <Route
-          path="/login"
-          element={
-            isAuthenticated
-              ? <Navigate to="/" replace />
-              : <Login />
-          }
-        />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Dashboard */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/devices"
+            element={
+              <ProtectedRoute>
+                <Devices />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Devices */}
-        <Route
-          path="/devices"
-          element={
-            <ProtectedRoute>
-              <Devices />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/devices/:id"
+            element={
+              <ProtectedRoute>
+                <DeviceDetails />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Device Details */}
-        <Route
-          path="/devices/:id"
-          element={
-            <ProtectedRoute>
-              <DeviceDetails />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/departments"
+            element={
+              <ProtectedRoute>
+                <Departments />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Departments */}
-        <Route
-          path="/departments"
-          element={
-            <ProtectedRoute>
-              <Departments />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/alerts"
+            element={
+              <ProtectedRoute>
+                <Alerts />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Alerts */}
-        <Route
-          path="/alerts"
-          element={
-            <ProtectedRoute>
-              <Alerts />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/alert-center"
+            element={
+              <ProtectedRoute>
+                <AlertCenter />
+              </ProtectedRoute>
+            }
+          />
 
-    
-    <Route
-      path="/email-history"
-      element={
-        <ProtectedRoute>
-          <EmailHistory />
-        </ProtectedRoute>
-      }
-    />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <Reports />
+              </ProtectedRoute>
+            }
+          />
 
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
 
+          <Route
+            path="/email-history"
+            element={
+              <ProtectedRoute>
+                <EmailHistory />
+              </ProtectedRoute>
+            }
+          />
 
-    <Route
-      path="/alert-center"
-      element={
-        <ProtectedRoute>
-          <AlertCenter />
-        </ProtectedRoute>
-      }
-    />
+          <Route
+            path="/notification-history"
+            element={
+              <ProtectedRoute>
+                <NotificationHistory />
+              </ProtectedRoute>
+            }
+          />
 
+          <Route
+            path="/network-discovery"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <NetworkDiscovery />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
 
+          <Route
+            path="/usb-approval"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <USBApproval />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
 
-    <Route
-      path="/notification-history"
-      element={
-        <ProtectedRoute>
-          <NotificationHistory />
-        </ProtectedRoute>
-      }
-    />
+          <Route
+            path="/exam-mode"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ExamMode />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
 
-    {/* Reports */}
-        <Route
-          path="/reports"
-          element={
-            <ProtectedRoute>
-              <Reports />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/lab2"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Lab2 />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Settings */}
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to={isAuthenticated ? "/" : "/login"}
+                replace
+              />
+            }
+          />
 
-        {/* 404 */}
-        <Route
-          path="*"
-          element={
-            <Navigate
-              to={isAuthenticated ? "/" : "/login"}
-              replace
-            />
-          }
-        />
-
-      
-      <Route
-        path="/lab2"
-        element={<Lab2 />}
-      />
-      <Route
-        path="/usb-approval"
-        element={<USBApproval />}
-      />
-      <Route
-        path="/exam-mode"
-        element={<ExamMode />}
-      />
-</Routes>
+        </Routes>
 
       </Suspense>
-
     </BrowserRouter>
   );
 }

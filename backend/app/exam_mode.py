@@ -4,6 +4,7 @@ from sqlalchemy import text
 
 from .auth_dependency import get_current_user
 from .database import SessionLocal
+from .role_dependency import require_admin
 
 router = APIRouter(
     prefix="/exam-mode",
@@ -68,7 +69,7 @@ def get_exam_mode(
 @router.put("")
 def update_exam_mode(
     settings: ExamModeUpdate,
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin),
     db=Depends(get_db),
 ):
     if settings.usb_policy not in {

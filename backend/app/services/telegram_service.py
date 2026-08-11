@@ -12,6 +12,16 @@ from app.notification_config import (
 )
 
 
+def _truncate(text, limit=500):
+
+    text = str(text)
+
+    if len(text) > limit:
+        return text[:limit] + "..."
+
+    return text
+
+
 
 def send_telegram(
     message,
@@ -57,7 +67,7 @@ def send_telegram(
                 alert_id,
                 "Telegram",
                 "FAILED",
-                response.text
+                _truncate(response.text)
             )
 
 
@@ -68,5 +78,5 @@ def send_telegram(
             alert_id,
             "Telegram",
             "FAILED",
-            str(e)
+            _truncate(e)
         )

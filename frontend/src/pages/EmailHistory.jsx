@@ -3,17 +3,22 @@ import { useEffect, useState } from "react";
 import api from "../services/api";
 
 
+function formatDateTime(value){
+
+  if(!value) return "--";
+
+  const date = new Date(value);
+
+  if(isNaN(date.getTime())) return "--";
+
+  return date.toLocaleString();
+
+}
+
+
 export default function EmailHistory(){
 
   const [history,setHistory] = useState([]);
-
-
-  useEffect(()=>{
-
-    loadHistory();
-
-  },[]);
-
 
 
   async function loadHistory(){
@@ -27,6 +32,17 @@ export default function EmailHistory(){
     );
 
   }
+
+
+  useEffect(()=>{
+
+    async function sync() {
+      await loadHistory();
+    }
+
+    sync();
+
+  },[]);
 
 
 
@@ -94,7 +110,7 @@ export default function EmailHistory(){
 
 
                 <td>
-                  {item.created_at}
+                  {formatDateTime(item.created_at)}
                 </td>
 
 

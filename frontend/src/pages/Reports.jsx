@@ -201,7 +201,7 @@ function Reports() {
   const totalDevices = devices.length;
 
   const onlineDevices = devices.filter(
-    d => d.status === "Online"
+    d => String(d.status || "").toLowerCase() === "online"
   ).length;
 
   const offlineDevices =
@@ -473,7 +473,7 @@ function Reports() {
 
                     <span
                       className={
-                        device.status === "Online"
+                        String(device.status || "").toLowerCase() === "online"
                           ? "bg-green-600 px-3 py-1 rounded-full text-sm"
                           : "bg-red-600 px-3 py-1 rounded-full text-sm"
                       }
@@ -575,7 +575,7 @@ function Reports() {
               <span className="text-red-400 font-bold">
                 {
                   devices.filter(
-                    d => d.cpu > 90
+                    d => (d.cpu ?? 0) > 90
                   ).length
                 }
               </span>
@@ -589,7 +589,7 @@ function Reports() {
               <span className="text-yellow-400 font-bold">
                 {
                   devices.filter(
-                    d => d.ram > 90
+                    d => (d.ram ?? 0) > 90
                   ).length
                 }
               </span>
@@ -603,7 +603,7 @@ function Reports() {
               <span className="text-orange-400 font-bold">
                 {
                   devices.filter(
-                    d => d.disk > 90
+                    d => (d.disk ?? 0) > 90
                   ).length
                 }
               </span>
@@ -660,7 +660,7 @@ function Reports() {
 
                 <span
                   className={
-                    device.status === "Online"
+                    String(device.status || "").toLowerCase() === "online"
                       ? "text-green-400"
                       : "text-red-400"
                   }

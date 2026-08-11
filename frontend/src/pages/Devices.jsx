@@ -1,23 +1,26 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import useWebSocket from "../hooks/useWebSocket";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/auth-context";
 import AddDevice from "../components/devices/AddDevice";
 
 
 
 function StatusBadge({status}){
 
+  const online =
+    String(status || "").toLowerCase() === "online";
+
   return (
 
     <span
       className={
-        status === "Online"
+        online
         ? "bg-green-600 px-3 py-1 rounded-full text-sm"
         : "bg-red-600 px-3 py-1 rounded-full text-sm"
       }
     >
-      {status}
+      {status || "unknown"}
     </span>
 
   );
@@ -28,8 +31,10 @@ function Devices(){
 
   const { role } = useAuth();
 
+  const isAdmin =
+    String(role || "").toLowerCase() === "admin";
+
   const [devices,setDevices] = useState([]);
-  const liveData = useWebSocket();
   const [search,setSearch] = useState("");
   const [showAdd,setShowAdd] = useState(false);
   const [editDevice,setEditDevice] = useState(null);
@@ -37,31 +42,23 @@ function Devices(){
   const [message,setMessage] = useState("");
 
 
-  useEffect(()=>{
+  useWebSocket((message) => {
 
-    loadDevices();
+    if (!message || !message.type) return;
 
-  },[]);
-
-
-  useEffect(()=>{
-
-    if(
-      liveData &&
-      liveData.type === "device_update"
-    ){
+    if (message.type === "device_update" && message.device) {
 
       setDevices(prev => {
 
         const exists = prev.find(
-          d => d.id === liveData.device.id
+          d => d.id === message.device.id
         );
 
         if(exists){
 
           return prev.map(d =>
-            d.id === liveData.device.id
-            ? liveData.device
+            d.id === message.device.id
+            ? { ...d, ...message.device }
             : d
           );
 
@@ -69,25 +66,96 @@ function Devices(){
 
         return [
           ...prev,
-          liveData.device
+          message.device
         ];
 
       });
 
+      return;
+
     }
 
-  },[liveData]);
+    if (message.type === "device_offline" && message.device) {
+
+      setDevices(prev =>
+        prev.map(d =>
+          d.id === message.device.id
+          ? { ...d, ...message.device, status: "offline" }
+          : d
+        )
+      );
+
+      return;
+
+    }
+
+    if (message.type === "device_online" && message.device) {
+
+      setDevices(prev =>
+        prev.map(d =>
+          d.id === message.device.id
+          ? { ...d, ...message.device, status: "online" }
+          : d
+        )
+      );
+
+    }
+
+  });
 
 
-  
+  async function loadDevices(){
+
+    try{
+
+      const response = await api.get("/devices");
+
+      setDevices(response.data);
+
+    }
+    catch(err){
+
+      console.error(
+        "Device Load Error",
+        err
+      );
+
+    }
+
+  }
+
+
+  useEffect(()=>{
+
+    async function sync() {
+      await loadDevices();
+    }
+
+    sync();
+
+  },[]);
+
 
 async function updateDevice(){
 
   try{
 
+    const payload = {
+      hostname: editDevice.hostname,
+      ip: editDevice.ip,
+      cpu: Number(editDevice.cpu) || 0,
+      ram: Number(editDevice.ram) || 0,
+      disk: Number(editDevice.disk) || 0,
+      status: String(editDevice.status || "offline").toLowerCase(),
+      department: editDevice.department || "",
+      lab: editDevice.lab || "",
+      location: editDevice.location || "",
+      os: editDevice.os || ""
+    };
+
     const response = await api.put(
       `/devices/${editDevice.id}`,
-      editDevice
+      payload
     );
 
 
@@ -115,6 +183,12 @@ async function updateDevice(){
       "Update Error",
       err
     );
+
+    setMessage("Failed to update device");
+
+    setTimeout(()=>{
+      setMessage("");
+    },3000);
 
   }
 
@@ -148,30 +222,15 @@ async function deleteDevice(id){
       err
     );
 
-  }
+    setMessage("Failed to delete device");
 
-}
-
-async function loadDevices(){
-
-    try{
-
-      const response = await api.get("/devices");
-
-      setDevices(response.data);
-
-    }
-    catch(err){
-
-      console.error(
-        "Device Load Error",
-        err
-      );
-
-    }
+    setTimeout(()=>{
+      setMessage("");
+    },3000);
 
   }
 
+  }
 
   const filtered = devices.filter(
     device =>
@@ -187,7 +246,13 @@ async function loadDevices(){
 
       {
         message && (
-          <div className="bg-green-600 text-white p-4 rounded-lg mb-5">
+          <div
+            className={
+              message.startsWith("Failed")
+              ? "bg-red-600 text-white p-4 rounded-lg mb-5"
+              : "bg-green-600 text-white p-4 rounded-lg mb-5"
+            }
+          >
             {message}
           </div>
         )
@@ -206,7 +271,7 @@ async function loadDevices(){
         </div>
 
 
-        {role === "Admin" && (
+        {isAdmin && (
           <button
             onClick={() => setShowAdd(true)}
             className="bg-cyan-600 hover:bg-cyan-700 px-5 py-3 rounded-lg font-semibold"
@@ -233,9 +298,8 @@ async function loadDevices(){
       />
 
 
-      
 {
- showAdd && role === "Admin" && (
+ showAdd && isAdmin && (
    <AddDevice
     onAdded={(device)=>{
       setDevices([
@@ -260,8 +324,8 @@ async function loadDevices(){
       Edit Device
     </h2>
 
-
     <input
+      placeholder="Hostname"
       className="w-full bg-slate-700 text-white p-3 rounded mb-4"
       value={editDevice.hostname}
       onChange={(e)=>setEditDevice({
@@ -270,6 +334,60 @@ async function loadDevices(){
       })}
     />
 
+    <input
+      placeholder="IP Address"
+      className="w-full bg-slate-700 text-white p-3 rounded mb-4"
+      value={editDevice.ip || ""}
+      onChange={(e)=>setEditDevice({
+        ...editDevice,
+        ip:e.target.value
+      })}
+    />
+
+    <input
+      placeholder="CPU (%)"
+      type="number"
+      className="w-full bg-slate-700 text-white p-3 rounded mb-4"
+      value={editDevice.cpu ?? 0}
+      onChange={(e)=>setEditDevice({
+        ...editDevice,
+        cpu:e.target.value
+      })}
+    />
+
+    <input
+      placeholder="RAM (%)"
+      type="number"
+      className="w-full bg-slate-700 text-white p-3 rounded mb-4"
+      value={editDevice.ram ?? 0}
+      onChange={(e)=>setEditDevice({
+        ...editDevice,
+        ram:e.target.value
+      })}
+    />
+
+    <input
+      placeholder="Disk (%)"
+      type="number"
+      className="w-full bg-slate-700 text-white p-3 rounded mb-4"
+      value={editDevice.disk ?? 0}
+      onChange={(e)=>setEditDevice({
+        ...editDevice,
+        disk:e.target.value
+      })}
+    />
+
+    <select
+      className="w-full bg-slate-700 text-white p-3 rounded mb-4"
+      value={String(editDevice.status || "").toLowerCase()}
+      onChange={(e)=>setEditDevice({
+        ...editDevice,
+        status:e.target.value
+      })}
+    >
+      <option value="online">Online</option>
+      <option value="offline">Offline</option>
+    </select>
 
     <div className="flex gap-3">
 
@@ -322,7 +440,11 @@ async function loadDevices(){
             </p>
 
             <p className="text-gray-400 mt-2">
-              Last Seen: {device.last_seen || "Unknown"}
+              Last Seen: {
+                device.last_seen
+                ? new Date(device.last_seen).toLocaleString()
+                : "Unknown"
+              }
             </p>
 
 
@@ -332,21 +454,21 @@ async function loadDevices(){
             <div className="grid grid-cols-3 mt-4">
 
               <p>
-                CPU: {device.cpu}%
+                CPU: {device.cpu ?? 0}%
               </p>
 
               <p>
-                RAM: {device.ram}%
+                RAM: {device.ram ?? 0}%
               </p>
 
               <p>
-                Disk: {device.disk}%
+                Disk: {device.disk ?? 0}%
               </p>
 
             </div>
 
 
-            {role === "Admin" && (
+            {isAdmin && (
 
               <div className="flex gap-3 mt-5">
 

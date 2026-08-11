@@ -8,9 +8,9 @@ services:
     restart: always
 
     environment:
-      POSTGRES_USER: smartadmin
-      POSTGRES_PASSWORD: StrongPassword123
-      POSTGRES_DB: smart_monitor
+      POSTGRES_USER: ${POSTGRES_USER:-smartadmin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-smart_monitor}
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -31,9 +31,9 @@ services:
       - db
 
     environment:
-      DATABASE_URL: postgresql://smartadmin:StrongPassword123@db:5432/smart_monitor
-      SECRET_KEY: change_this_secret_key
-      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      DATABASE_URL: ${DATABASE_URL}
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
 
     ports:
       - "8000:8000"

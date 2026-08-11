@@ -21,7 +21,7 @@ def scan_network(network):
         try:
             hostname = socket.gethostbyaddr(host)[0]
 
-        except:
+        except (socket.herror, socket.gaierror, OSError):
             hostname = host
 
 

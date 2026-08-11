@@ -4,51 +4,77 @@ import api from "../services/api";
 import useWebSocket from "../hooks/useWebSocket";
 
 
+function formatDateTime(value){
+
+  if(!value) return "--";
+
+  const date = new Date(value);
+
+  if(isNaN(date.getTime())) return "--";
+
+  return date.toLocaleString();
+
+}
+
+
 export default function NotificationHistory(){
 
   const [history,setHistory] = useState([]);
 
-const liveData = useWebSocket();
 
+  useWebSocket((message) => {
 
-  useEffect(()=>{
-
-    loadHistory();
-
-  },[]);
-
-
-useEffect(()=>{
-
-    if(
-      liveData &&
-      liveData.type === "notification"
+    if (
+      message &&
+      message.type === "notification"
     ){
 
       setHistory(
         prev => [
-          liveData,
+          message,
           ...prev
         ]
       );
 
     }
 
-},[liveData]);
-
+  });
 
 
   async function loadHistory(){
 
-    const res = await api.get(
-      "/alerts/notifications/history"
-    );
+    try{
 
-    setHistory(
-      res.data
-    );
+      const res = await api.get(
+        "/alerts/notifications/history"
+      );
+
+      setHistory(
+        Array.isArray(res.data) ? res.data : []
+      );
+
+    }
+    catch(err){
+
+      console.error(
+        "Load Notification History Error",
+        err
+      );
+
+    }
 
   }
+
+
+  useEffect(()=>{
+
+    async function sync() {
+      await loadHistory();
+    }
+
+    sync();
+
+  },[]);
 
 
 
@@ -81,7 +107,7 @@ useEffect(()=>{
           <tbody>
 
           {
-            history.map(item=>(
+            history.map(item => (
 
               <tr key={item.id}>
 
@@ -102,7 +128,7 @@ useEffect(()=>{
                 </td>
 
                 <td>
-                  {item.created_at}
+                  {formatDateTime(item.created_at)}
                 </td>
 
               </tr>

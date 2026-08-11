@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .database import SessionLocal
 from .alert_model import Alert
+from .auth_dependency import get_current_user
+from .role_dependency import require_admin
 
 
 router = APIRouter(
@@ -27,6 +29,7 @@ def get_db():
 def get_alerts(
     page: int = 1,
     limit: int = 50,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
 
@@ -47,17 +50,10 @@ def get_alerts(
     return alerts
 
 
-    return (
-        db.query(Alert)
-        .order_by(Alert.created_at.desc())
-        .limit(100)
-        .all()
-    )
-
-
 
 @router.get("/history")
 def alert_history(
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
 
@@ -83,6 +79,7 @@ def alert_history(
 @router.patch("/{alert_id}/resolve")
 def resolve_alert(
     alert_id: int,
+    current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
 
@@ -97,12 +94,14 @@ def resolve_alert(
 
     if not alert:
 
-        return {
-            "error":"Alert not found"
-        }
+        raise HTTPException(
+            status_code=404,
+            detail="Alert not found"
+        )
 
 
     alert.status = "RESOLVED"
+    alert.resolved_at = datetime.utcnow()
 
 
     db.commit()
@@ -119,6 +118,7 @@ from datetime import datetime, timedelta
 
 @router.delete("/cleanup")
 def cleanup_alerts(
+    current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
 
@@ -149,6 +149,7 @@ def cleanup_alerts(
 
 @router.get("/analytics")
 def alert_analytics(
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
 
@@ -203,6 +204,7 @@ def alert_analytics(
 
 @router.get("/notifications/history")
 def notification_history(
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
 

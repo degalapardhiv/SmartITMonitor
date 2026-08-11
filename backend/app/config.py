@@ -1,3 +1,4 @@
+import logging
 import os
 
 from dotenv import load_dotenv
@@ -5,8 +6,28 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+logger = logging.getLogger("app.config")
 
-SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
+
+WEAK_SECRET_KEYS = {
+    "",
+    "change-me-in-production",
+    "change_this_secret_key",
+    "change-me",
+    "your-secret-key",
+    "secret",
+    "secret-key",
+}
+
+
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-secret-key")
+
+if SECRET_KEY in WEAK_SECRET_KEYS or not SECRET_KEY:
+    logger.warning(
+        "SECRET_KEY is missing or set to a known placeholder value. "
+        "Set a strong, unique SECRET_KEY in your environment or .env file "
+        "before deploying to production."
+    )
 
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
@@ -22,3 +43,7 @@ TELEGRAM_ENABLED = (
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "ChangeMe123!")

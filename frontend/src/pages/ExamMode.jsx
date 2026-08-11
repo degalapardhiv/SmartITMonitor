@@ -50,7 +50,10 @@ export default function ExamMode() {
   };
 
   useEffect(() => {
-    loadSettings();
+    async function sync() {
+      await loadSettings();
+    }
+    sync();
   }, []);
 
   const saveSettings = async () => {

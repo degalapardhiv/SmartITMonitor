@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.responses import Response
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
@@ -19,6 +21,8 @@ from .models import Device
 from .metric_model import DeviceMetric
 from .user_model import User
 from .alert_model import Alert
+from .network_device_model import NetworkDevice
+from .exam_mode_model import ExamModeSetting, USBRequest
 
 # API Routers
 from .routes import router
@@ -26,6 +30,7 @@ from .auth_routes import router as auth_router
 from .alert_routes import router as alert_router
 from .usb_routes import router as usb_router
 from .exam_mode import router as exam_mode_router
+from .network_routes import router as network_router
 
 # Create all database tables
 Base.metadata.create_all(bind=engine)
@@ -50,12 +55,30 @@ def metrics():
 # CORS
 # ---------------------------------------
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+def _cors_origins():
+    default_origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-    ],
+    ]
+
+    raw = os.getenv("CORS_ORIGINS")
+
+    if raw:
+        origins = [
+            origin.strip()
+            for origin in raw.split(",")
+            if origin.strip()
+        ]
+
+        if origins:
+            return origins
+
+    return default_origins
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -67,8 +90,10 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(alert_router)
-for route in router.routes:
-    app.router.routes.append(route)
+app.include_router(router)
+app.include_router(usb_router)
+app.include_router(exam_mode_router)
+app.include_router(network_router)
 
 # ---------------------------------------
 # Root
@@ -124,6 +149,28 @@ def startup_device_metrics():
     start_alert_monitor()
 
 
-app.include_router(usb_router)
+@app.on_event("startup")
+def seed_exam_mode_settings():
+    from .database import SessionLocal
 
-app.include_router(exam_mode_router)
+    db = SessionLocal()
+
+    try:
+        existing = (
+            db.query(ExamModeSetting)
+            .filter(ExamModeSetting.id == 1)
+            .first()
+        )
+
+        if existing is None:
+            db.add(
+                ExamModeSetting(
+                    id=1,
+                    enabled=False,
+                    usb_policy="approval_required",
+                )
+            )
+            db.commit()
+
+    finally:
+        db.close()

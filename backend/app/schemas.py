@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
 
 
 class DeviceCreate(BaseModel):
@@ -8,7 +9,7 @@ class DeviceCreate(BaseModel):
     cpu: float
     ram: float
     disk: float
-    status: str
+    status: str = "online"
 
     department: str
     lab: str
@@ -22,18 +23,18 @@ class DeviceResponse(BaseModel):
     hostname: str
     ip: str
 
-    cpu: float
-    ram: float
-    disk: float
+    cpu: Optional[float] = None
+    ram: Optional[float] = None
+    disk: Optional[float] = None
 
     status: str
 
-    department: str
-    lab: str
-    location: str
-    os: str
+    department: Optional[str] = None
+    lab: Optional[str] = None
+    location: Optional[str] = None
+    os: Optional[str] = None
 
-    last_seen: datetime
+    last_seen: Optional[datetime] = None
 
     class Config:
         from_attributes = True

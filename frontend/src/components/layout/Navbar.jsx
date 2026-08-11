@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/auth-context";
 
 function Navbar() {
 
@@ -90,6 +90,27 @@ function Navbar() {
             className={linkClass("/reports")}
           >
             Reports
+          </Link>
+
+          <Link
+            to="/network-discovery"
+            className={linkClass("/network-discovery")}
+          >
+            Network
+          </Link>
+
+          <Link
+            to="/usb-approval"
+            className={linkClass("/usb-approval")}
+          >
+            USB
+          </Link>
+
+          <Link
+            to="/exam-mode"
+            className={linkClass("/exam-mode")}
+          >
+            Exam Mode
           </Link>
 
           <Link

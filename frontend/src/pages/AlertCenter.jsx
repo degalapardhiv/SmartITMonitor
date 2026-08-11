@@ -5,6 +5,19 @@ import api from "../services/api";
 import useWebSocket from "../hooks/useWebSocket";
 
 
+function formatDateTime(value){
+
+  if(!value) return "--";
+
+  const date = new Date(value);
+
+  if(isNaN(date.getTime())) return "--";
+
+  return date.toLocaleString();
+
+}
+
+
 export default function AlertCenter(){
 
   const [alerts,setAlerts] = useState([]);
@@ -15,63 +28,143 @@ export default function AlertCenter(){
 
   const [type,setType] = useState("ALL");
 
+  const [loading,setLoading] = useState(true);
 
-  const liveData = useWebSocket();
+  const [error,setError] = useState("");
 
-
-
-  useEffect(()=>{
-
-    loadAlerts(page);
-
-  },[]);
+  const [resolvingId,setResolvingId] = useState(null);
 
 
+  useWebSocket((message) => {
 
-  useEffect(()=>{
+    if (!message || !message.type) return;
 
-    if(
-      liveData &&
-      liveData.type === "alert"
-    ){
+    if (message.type === "alert_resolved" && message.alerts) {
 
-      setAlerts(
-        prev => [
-          liveData.alert,
-          ...prev
-        ]
+      const ids = new Set(message.alerts.map(a => a.id));
+
+      setAlerts(prev =>
+        prev.map(a =>
+          ids.has(a.id) && a.status === "OPEN"
+          ? { ...a, status: "RESOLVED", resolved_at: a.resolved_at }
+          : a
+        )
       );
+
+      return;
 
     }
 
-  },[liveData]);
+    if (message.type !== "alert" || !message.alert) return;
 
+    const alert = message.alert;
 
+    setAlerts(prev => {
 
-  
-async function resolveAlert(id){
+      const exists = prev.some(a => a.id === alert.id);
 
-  await api.patch(
-    `/alerts/${id}/resolve`
-  );
+      if (exists) {
 
+        return prev.map(a => a.id === alert.id ? alert : a);
 
-  loadAlerts(page);
+      }
 
-}
+      return [
+        alert,
+        ...prev
+      ];
+
+    });
+
+  });
+
 
 async function loadAlerts(currentPage=1){
+
+  setLoading(true);
+
+  try{
 
     const res = await api.get(
       `/alerts/?page=${currentPage}&limit=50`
     );
 
     setAlerts(
-      res.data
+      Array.isArray(res.data) ? res.data : []
     );
+
+    setError("");
+
+  }
+  catch(err){
+
+    console.error(
+      "Load Alerts Error",
+      err
+    );
+
+    setError("Failed to load alerts");
+
+  }
+  finally{
+
+    setLoading(false);
 
   }
 
+}
+
+
+  useEffect(()=>{
+
+    async function sync() {
+      await loadAlerts(page);
+    }
+
+    sync();
+
+  },[page]);
+
+
+
+async function resolveAlert(id){
+
+  setResolvingId(id);
+
+  try{
+
+    await api.patch(
+      `/alerts/${id}/resolve`
+    );
+
+    setAlerts(prev =>
+      prev.map(a =>
+        a.id === id
+        ? { ...a, status: "RESOLVED" }
+        : a
+      )
+    );
+
+  }
+  catch(err){
+
+    console.error(
+      "Resolve Alert Error",
+      err
+    );
+
+    setError("Failed to resolve alert");
+
+    setTimeout(()=>setError(""), 4000);
+
+  }
+  finally{
+
+    setResolvingId(null);
+
+  }
+
+}
 
 
   const filteredAlerts = alerts.filter(
@@ -79,12 +172,12 @@ async function loadAlerts(currentPage=1){
 
       const severityMatch =
         severity === "ALL" ||
-        alert.severity === severity;
+        String(alert.severity || "").toUpperCase() === severity;
 
 
       const typeMatch =
         type === "ALL" ||
-        alert.alert_type === type;
+        String(alert.alert_type || "").toUpperCase() === type;
 
 
       return severityMatch && typeMatch;
@@ -96,11 +189,13 @@ async function loadAlerts(currentPage=1){
 
   function badgeColor(level){
 
-    if(level === "HIGH")
+    const lvl = String(level || "").toUpperCase();
+
+    if(lvl === "HIGH")
       return "bg-red-600";
 
 
-    if(level === "MEDIUM")
+    if(lvl === "MEDIUM")
       return "bg-orange-500";
 
 
@@ -118,6 +213,13 @@ async function loadAlerts(currentPage=1){
       <h1 className="text-4xl font-bold mb-8">
         Alert Center
       </h1>
+
+
+      {error && (
+        <div className="mb-4 bg-red-600 text-white p-4 rounded-lg">
+          {error}
+        </div>
+      )}
 
 
       <div className="flex gap-4 mb-6">
@@ -152,6 +254,8 @@ async function loadAlerts(currentPage=1){
           <option>CPU</option>
           <option>RAM</option>
           <option>DISK</option>
+          <option>USB_PENDING</option>
+          <option>USB_REJECTED</option>
 
         </select>
 
@@ -189,8 +293,29 @@ async function loadAlerts(currentPage=1){
 
 
           {
-            filteredAlerts.map(alert=>(
+            loading ? (
 
+              <tr>
+                <td
+                  colSpan="8"
+                  className="text-center py-8 text-gray-400"
+                >
+                  Loading alerts...
+                </td>
+              </tr>
+
+            ) : filteredAlerts.length === 0 ? (
+
+              <tr>
+                <td
+                  colSpan="8"
+                  className="text-center py-8 text-gray-400"
+                >
+                  No alerts found.
+                </td>
+              </tr>
+
+            ) : filteredAlerts.map(alert=>(
               <tr key={alert.id}>
 
 
@@ -230,7 +355,7 @@ async function loadAlerts(currentPage=1){
                 <td>
 
                   {
-                    alert.status === "RESOLVED"
+                    String(alert.status || "").toUpperCase() === "RESOLVED"
 
                     ?
 
@@ -242,9 +367,10 @@ async function loadAlerts(currentPage=1){
 
                     <button
                       onClick={() => resolveAlert(alert.id)}
-                      className="bg-red-600 px-3 py-1 rounded"
+                      disabled={resolvingId === alert.id}
+                      className="bg-red-600 px-3 py-1 rounded disabled:bg-slate-600"
                     >
-                      Resolve
+                      {resolvingId === alert.id ? "Resolving..." : "Resolve"}
                     </button>
                   }
 
@@ -257,12 +383,11 @@ async function loadAlerts(currentPage=1){
 
 
                 <td>
-                  {alert.created_at}
+                  {formatDateTime(alert.created_at)}
                 </td>
 
 
               </tr>
-
             ))
           }
 
@@ -280,7 +405,8 @@ async function loadAlerts(currentPage=1){
                 loadAlerts(page-1);
               }
             }}
-            className="bg-slate-700 px-4 py-2 rounded"
+            className="bg-slate-700 px-4 py-2 rounded disabled:opacity-50"
+            disabled={page <= 1}
           >
             Previous
           </button>

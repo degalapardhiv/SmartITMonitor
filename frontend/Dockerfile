@@ -7,6 +7,9 @@ COPY package*.json .
 RUN npm config set fetch-timeout 120000
 RUN npm config set fetch-retries 5
 
+# Note: `npm install` requires network access at build time (it is not run
+# offline). The app uses relative /api and /ws URLs, so no VITE_* build-time
+# env vars are needed.
 RUN npm install
 
 COPY . .

@@ -1,155 +1,206 @@
 @import "tailwindcss";
 
-body{
-    margin:0;
-    background:#0f172a;
-    color:white;
-    font-family:Inter,sans-serif;
+@theme {
+  /* ---- Slate → Netflix near-black / neutral grays ---- */
+  --color-slate-950: #0a0a0a;
+  --color-slate-900: #141414;
+  --color-slate-800: #181818;
+  --color-slate-700: #2a2a2a;
+  --color-slate-600: #333333;
+  --color-slate-500: #404040;
+  --color-slate-400: #555555;
+  --color-slate-300: #6b6b6b;
+  --color-slate-200: #8a8a8a;
+  --color-slate-100: #a3a3a3;
+  --color-slate-50: #c0c0c0;
+
+  /* ---- Cyan (previous primary accent) → Netflix red ---- */
+  --color-cyan-950: #120303;
+  --color-cyan-900: #1a0507;
+  --color-cyan-800: #3d070b;
+  --color-cyan-700: #a0050e;
+  --color-cyan-600: #c40812;
+  --color-cyan-500: #e50914;
+  --color-cyan-400: #e50914;
+  --color-cyan-300: #f6121d;
+  --color-cyan-200: #ff5c5c;
+  --color-cyan-100: #ffb3b3;
+
+  /* ---- Red → Netflix brand red ---- */
+  --color-red-950: #140304;
+  --color-red-900: #1a0507;
+  --color-red-800: #3d070b;
+  --color-red-700: #b00610;
+  --color-red-600: #e50914;
+  --color-red-500: #e50914;
+  --color-red-400: #f6121d;
+  --color-red-300: #ff5c5c;
+  --color-red-200: #ffb3b3;
+  --color-red-100: #ffe0e0;
+
+  /* ---- Green → Netflix success green ---- */
+  --color-green-950: #06130a;
+  --color-green-900: #0a1f10;
+  --color-green-800: #14331c;
+  --color-green-700: #3aa75a;
+  --color-green-600: #46d369;
+  --color-green-500: #46d369;
+  --color-green-400: #46d369;
+  --color-green-300: #7cf5a9;
+  --color-green-200: #b6ffcf;
+  --color-green-100: #d9ffea;
+
+  /* ---- Yellow → Netflix amber ---- */
+  --color-yellow-950: #1a1103;
+  --color-yellow-900: #2a1c05;
+  --color-yellow-800: #4a3107;
+  --color-yellow-700: #b06e0d;
+  --color-yellow-600: #d68a13;
+  --color-yellow-500: #f5a623;
+  --color-yellow-400: #f5a623;
+  --color-yellow-300: #ffc04d;
+  --color-yellow-200: #ffd98a;
+
+  /* ---- Orange → Netflix amber ---- */
+  --color-orange-950: #1a1103;
+  --color-orange-900: #2a1c05;
+  --color-orange-800: #4a3107;
+  --color-orange-700: #b06e0d;
+  --color-orange-600: #d68a13;
+  --color-orange-500: #f5a623;
+  --color-orange-400: #f5a623;
+  --color-orange-300: #ffc04d;
+
+  /* ---- Purple (disk values) → white / Netflix gray ---- */
+  --color-purple-400: #ffffff;
+  --color-purple-500: #c0c0c0;
+  --color-purple-600: #a3a3a3;
+  --color-purple-700: #8a8a8a;
+
+  /* ---- Blue (progress bars) → Netflix red ---- */
+  --color-blue-500: #e50914;
+  --color-blue-600: #e50914;
+  --color-blue-700: #b00610;
+  --color-blue-400: #f6121d;
+  --color-blue-300: #ff5c5c;
+  --color-blue-800: #3d070b;
+
+  /* ---- Indigo → muted red ---- */
+  --color-indigo-600: #e50914;
+  --color-indigo-700: #b00610;
+  --color-indigo-500: #e50914;
+  --color-indigo-400: #f6121d;
+
+  /* ---- Gray → Netflix grays ---- */
+  --color-gray-600: #333333;
+  --color-gray-500: #404040;
+  --color-gray-400: #a3a3a3;
+  --color-gray-300: #d4d4d4;
+  --color-gray-200: #e6e6e6;
+  --color-gray-100: #f2f2f2;
+  --color-gray-700: #2a2a2a;
+  --color-gray-800: #181818;
+  --color-gray-900: #141414;
+  --color-gray-950: #0a0a0a;
 }
 
+body {
+  margin: 0;
+  background: #0a0a0a;
+  color: white;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
 
 .offline-alert {
-
-  background: #450a0a;
-
-  color: #fecaca;
-
-  border: 1px solid #ef4444;
-
+  background: rgba(229, 9, 20, 0.12);
+  color: #ff8a90;
+  border: 1px solid #e50914;
   padding: 15px;
-
   margin: 15px;
-
   border-radius: 10px;
-
   display: flex;
-
   justify-content: space-between;
-
   align-items: center;
-
   font-weight: bold;
-
 }
-
 
 .offline-alert button {
-
   background: transparent;
-
-  color: #fecaca;
-
+  color: #ff8a90;
   border: none;
-
   font-size: 18px;
-
   cursor: pointer;
-
 }
-
-
 
 .device-table-container {
-
   margin: 20px;
-
   padding: 20px;
-
-  background: rgba(255,255,255,0.05);
-
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-
   overflow-x: auto;
-
 }
-
 
 .device-table {
-
   width: 100%;
-
   border-collapse: collapse;
-
 }
-
 
 .device-table th {
-
   text-align: left;
-
   padding: 12px;
-
-  border-bottom: 1px solid #334155;
-
+  border-bottom: 1px solid #333333;
 }
-
 
 .device-table td {
-
   padding: 12px;
-
-  border-bottom: 1px solid #1e293b;
-
+  border-bottom: 1px solid #222222;
 }
-
 
 .status-online {
-
-  background: #065f46;
-
-  color: #a7f3d0;
-
+  background: rgba(70, 211, 105, 0.15);
+  color: #46d369;
   padding: 5px 12px;
-
   border-radius: 20px;
-
   font-size: 13px;
-
 }
-
 
 .status-offline {
-
-  background: #7f1d1d;
-
-  color: #fecaca;
-
+  background: rgba(229, 9, 20, 0.15);
+  color: #e50914;
   padding: 5px 12px;
-
   border-radius: 20px;
-
   font-size: 13px;
-
 }
-
 
 .device-table tr:hover {
-
-  background: rgba(255,255,255,0.05);
-
+  background: rgba(255, 255, 255, 0.05);
 }
 
-
 .alert-popup {
-  border-left: 5px solid red;
+  border-left: 5px solid #e50914;
   animation: alertPulse 1.5s infinite;
 }
 
 .alert-high {
-  background: rgba(220,38,38,0.9);
+  background: rgba(229, 9, 20, 0.9);
 }
 
 .alert-medium {
-  background: rgba(234,179,8,0.9);
+  background: rgba(245, 166, 35, 0.9);
 }
 
 .alert-low {
-  background: rgba(34,197,94,0.9);
+  background: rgba(70, 211, 105, 0.9);
 }
 
-
 @keyframes alertPulse {
-
   0% {
     transform: scale(1);
   }
@@ -161,6 +212,4 @@ body{
   100% {
     transform: scale(1);
   }
-
 }
-

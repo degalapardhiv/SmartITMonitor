@@ -30,13 +30,30 @@ function formatTime(value){
 }
 
 
+function formatDateTime(value){
+
+  if(!value){
+    return "--";
+  }
+
+  const date = new Date(value);
+
+  if(isNaN(date.getTime())){
+    return "--";
+  }
+
+  return date.toLocaleString();
+
+}
+
+
 function Dashboard() {
 
-  const liveData = useWebSocket();
-
-  const [liveDevice, setLiveDevice] = useState(null);
+  const [liveDevices, setLiveDevices] = useState({});
 
   const [liveAlert, setLiveAlert] = useState(null);
+
+  const [liveAlerts, setLiveAlerts] = useState([]);
 
   const [offlineAlert, setOfflineAlert] = useState(null);
 
@@ -46,37 +63,20 @@ function Dashboard() {
 
   const [devices, setDevices] = useState([]);
 
-  const [deviceStatus, setDeviceStatus] = useState({});
-
   const [alertAnalytics,setAlertAnalytics] = useState({
-severity:[],
-types:[]
-});
+    severity:[],
+    types:[]
+  });
 
-
-const [notificationStats,setNotificationStats] = useState({
+  const [notificationStats,setNotificationStats] = useState({
     total:0,
     sent:0,
     failed:0,
     telegram:0,
     email:0
-});
+  });
 
-
-async function loadNotificationStats(){
-
-  const res = await fetch(
-    "/api/notifications/analytics"
-  );
-
-  const data = await res.json();
-
-  setNotificationStats(data);
-
-}
-
-
-const [stats, setStats] = useState({
+  const [stats, setStats] = useState({
     total: 0,
     online: 0,
     offline: 0,
@@ -86,183 +86,46 @@ const [stats, setStats] = useState({
   });
 
 
-  
-async function loadAlertAnalytics(){
+  async function loadNotificationStats(){
 
-const res = await fetch(
-"/api/alerts/analytics"
-);
+    try {
 
-const data = await res.json();
+      const response = await api.get("/notifications/analytics");
 
-setAlertAnalytics(data);
+      setNotificationStats(response.data);
 
-}
+    }
+    catch(err){
 
-
-
-useEffect(()=>{
-
-  loadNotificationStats();
-
-  const timer=setInterval(()=>{
-
-    loadNotificationStats();
-
-  },30000);
-
-
-  return ()=>clearInterval(timer);
-
-
-},[]);
-
-
-
-useEffect(()=>{
-
-  const timer = setInterval(()=>{
-
-    loadAlertAnalytics();
-
-  },30000);
-
-
-  return ()=>clearInterval(timer);
-
-
-},[]);
-
-
-useEffect(() => {
-
-    if (
-      liveData &&
-      liveData.type === "alert"
-    ) {
-
-      console.log(
-        "Live Alert:",
-        liveData.alert
+      console.error(
+        "Notification Stats Load Error",
+        err
       );
-
-      setLiveAlert(
-        liveData.alert
-      );
-
-
-      loadAlertAnalytics();
-
-      loadDashboard();
-
-  loadAlertAnalytics();
-
-      setTimeout(() => {
-        setLiveAlert(null);
-      }, 8000);
-
-      return;
 
     }
 
+  }
 
-    if (
-      liveData &&
-      liveData.type === "device_offline"
-    ){
 
-      console.log(
-        "Device Offline:",
-        liveData.device
+  async function loadAlertAnalytics(){
+
+    try {
+
+      const response = await api.get("/alerts/analytics");
+
+      setAlertAnalytics(response.data);
+
+    }
+    catch(err){
+
+      console.error(
+        "Alert Analytics Load Error",
+        err
       );
-
-      setOfflineAlert(
-        liveData.device
-      );
-
-      loadDashboard();
-
-      return;
 
     }
 
-
-
-    if (
-      liveData &&
-      liveData.type === "device_update"
-    ) {
-
-      console.log(
-        "New Device Data:",
-        liveData.device
-      );
-
-      setLiveDevice(prev => ({
-        ...prev,
-        ...liveData.device
-      }));
-
-      setDeviceStatus(prev => ({
-        ...prev,
-        [liveData.device.id]: {
-          ...prev[liveData.device.id],
-          ...devices.find(
-            d => d.id === liveData.device.id
-          ),
-          ...liveData.device,
-          status: "online",
-          last_seen: new Date().toISOString()
-        }
-      }));
-
-      loadDashboard();
-
-      if(
-        liveData.device.id === selectedDevice
-      ){
-
-        setHistory(prev => [
-          ...prev.slice(-19),
-          {
-            time: formatTime(new Date()),
-            cpu: liveData.device.cpu,
-            ram: liveData.device.ram,
-            disk: liveData.device.disk
-          }
-        ]);
-
-      }
-
-      loadDashboard();
-
-    }
-
-  }, [liveData, selectedDevice]);
-
-
-  useEffect(() => {
-
-    loadDashboard();
-
-    loadDevices();
-
-  }, []);
-
-
-  useEffect(() => {
-
-    if(selectedDevice){
-
-      loadMetrics();
-
-    }
-
-  }, [selectedDevice]);
-
-
-
-
+  }
 
 
   async function loadMetrics(){
@@ -351,6 +214,207 @@ useEffect(() => {
   }
 
 
+  function applyLiveDevice(update){
+
+    setLiveDevices(prev => ({
+      ...prev,
+      [update.id]: {
+        ...(prev[update.id] || {}),
+        ...update,
+      },
+    }));
+
+  }
+
+
+  useWebSocket((message) => {
+
+    if (!message || !message.type) return;
+
+    if (message.type === "alert_resolved" && message.alerts) {
+
+      const ids = new Set(message.alerts.map(a => a.id));
+
+      setLiveAlerts(prev =>
+        prev.map(a =>
+          ids.has(a.id) && a.status === "OPEN"
+          ? { ...a, status: "RESOLVED", resolved_at: a.resolved_at }
+          : a
+        )
+      );
+
+      loadAlertAnalytics();
+
+      loadDashboard();
+
+      return;
+
+    }
+
+    if (message.type === "alert") {
+
+      const alert = message.alert;
+
+      if (alert) {
+
+        setLiveAlerts(prev => {
+
+          const exists = prev.some(a => a.id === alert.id);
+
+          const next = exists
+            ? prev.map(a => a.id === alert.id ? alert : a)
+            : [alert, ...prev];
+
+          return next.slice(0, 20);
+
+        });
+
+        setLiveAlert(alert);
+
+        setTimeout(() => {
+          setLiveAlert(prev => (
+            prev && prev.id === alert.id ? null : prev
+          ));
+        }, 8000);
+
+        loadAlertAnalytics();
+
+        loadDashboard();
+
+      }
+
+      return;
+
+    }
+
+    if (message.type === "device_offline" && message.device) {
+
+      applyLiveDevice({
+        ...message.device,
+        status: "offline",
+        last_seen: new Date().toISOString()
+      });
+
+      setOfflineAlert({
+        hostname: message.device.hostname
+      });
+
+      loadDashboard();
+
+      return;
+
+    }
+
+    if (message.type === "device_online" && message.device) {
+
+      applyLiveDevice({
+        ...message.device,
+        status: "online",
+        last_seen: new Date().toISOString()
+      });
+
+      setOfflineAlert(prev =>
+        prev && prev.hostname === message.device.hostname
+        ? null
+        : prev
+      );
+
+      loadDashboard();
+
+      return;
+
+    }
+
+    if (message.type === "device_update" && message.device) {
+
+      const update = message.device;
+
+      applyLiveDevice(update);
+
+      if (Number(update.id) === Number(selectedDevice)) {
+
+        setHistory(prev => [
+          ...prev.slice(-19),
+          {
+            time: formatTime(update.last_seen || new Date()),
+            cpu: update.cpu,
+            ram: update.ram,
+            disk: update.disk
+          }
+        ]);
+
+      }
+
+      loadDashboard();
+
+    }
+
+  });
+
+
+  useEffect(()=>{
+
+    async function sync() {
+      await loadNotificationStats();
+    }
+    sync();
+
+    const timer=setInterval(sync,30000);
+
+
+    return ()=>clearInterval(timer);
+
+
+  },[]);
+
+
+
+  useEffect(()=>{
+
+    const timer = setInterval(()=>{
+
+      loadAlertAnalytics();
+
+    },30000);
+
+
+    return ()=>clearInterval(timer);
+
+
+  },[]);
+
+
+  useEffect(() => {
+
+    async function sync() {
+      await loadDashboard();
+      await loadDevices();
+    }
+    sync();
+
+  }, []);
+
+
+  useEffect(() => {
+
+    async function sync() {
+      if(selectedDevice){
+        await loadMetrics();
+      }
+    }
+    sync();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDevice]);
+
+
+
+  const selectedDeviceData =
+    liveDevices[selectedDevice] ||
+    devices.find(d => Number(d.id) === Number(selectedDevice)) ||
+    null;
+
+
   return (
 
     <Layout>
@@ -437,17 +501,24 @@ useEffect(() => {
 
       <div className="mt-8">
 
+        <NotificationStats data={notificationStats} />
+
+      </div>
+
+
+      <div className="mt-8">
+
         <h2 className="text-2xl font-bold text-white mb-4">
           Live Device Monitor
         </h2>
 
 
-        {liveDevice ? (
+        {selectedDeviceData ? (
 
           <div className="bg-slate-800 rounded-xl p-6">
 
             <h3 className="text-cyan-400 text-2xl">
-              {liveDevice.hostname}
+              {selectedDeviceData.hostname}
             </h3>
 
 
@@ -457,7 +528,7 @@ useEffect(() => {
               <div>
                 CPU
                 <p className="text-3xl text-green-400">
-                  {liveDevice.cpu}%
+                  {selectedDeviceData.cpu ?? 0}%
                 </p>
               </div>
 
@@ -465,7 +536,7 @@ useEffect(() => {
               <div>
                 RAM
                 <p className="text-3xl text-yellow-400">
-                  {liveDevice.ram}%
+                  {selectedDeviceData.ram ?? 0}%
                 </p>
               </div>
 
@@ -473,7 +544,7 @@ useEffect(() => {
               <div>
                 Disk
                 <p className="text-3xl text-purple-400">
-                  {liveDevice.disk}%
+                  {selectedDeviceData.disk ?? 0}%
                 </p>
               </div>
 
@@ -482,7 +553,13 @@ useEffect(() => {
 
 
             <p className="mt-5 text-green-400">
-              Status: {liveDevice.status}
+              Status: {selectedDeviceData.status}
+            </p>
+
+            <p className="mt-2 text-gray-400 text-sm">
+              Last Seen: {
+                formatDateTime(selectedDeviceData.last_seen)
+              }
             </p>
 
 
@@ -503,9 +580,18 @@ useEffect(() => {
 
       <LiveDevices />
 
-          <MetricsChart data={history} />
 
-      <DeviceChart data={history} />
+      <div className="mt-8">
+
+        <MetricsChart data={history} />
+
+      </div>
+
+      <div className="mt-8">
+
+        <DeviceChart data={history} />
+
+      </div>
 
 
       <div className="mt-8">
@@ -515,6 +601,7 @@ useEffect(() => {
         />
 
       </div>
+
 
       {
         liveAlert && (
@@ -533,112 +620,88 @@ useEffect(() => {
               Device: {liveAlert.hostname}
             </p>
 
+            <p className="text-xs mt-1">
+              {formatDateTime(liveAlert.created_at)}
+            </p>
+
           </div>
 
         )
       }
 
 
-      <ExportAlerts />
+      {
+        liveAlerts.length > 0 && (
 
-      <ExportAlertsPDF />
+          <div className="mt-8">
 
-      <AlertHistoryChart />
+            <h2 className="text-2xl font-bold text-white mb-4">
+              Recent Live Alerts
+            </h2>
 
-      <div className="device-table-container">
+            <div className="bg-slate-800 rounded-xl p-6">
 
-        <h2>
-          Live Devices
-        </h2>
+              <div className="space-y-3">
 
+                {
+                  liveAlerts.slice(0, 10).map(alert => (
 
-        <table className="device-table">
-
-          <thead>
-
-            <tr>
-              <th>Hostname</th>
-              <th>IP</th>
-              <th>Status</th>
-              <th>CPU</th>
-              <th>RAM</th>
-              <th>Disk</th>
-              <th>Last Seen</th>
-            </tr>
-
-          </thead>
-
-
-          <tbody>
-
-          {
-            devices.map(device => {
-
-              const live =
-                deviceStatus[device.id] || device;
-
-
-              return (
-
-                <tr key={device.id}>
-
-                  <td>
-                    {live.hostname}
-                  </td>
-
-
-                  <td>
-                    {live.ip}
-                  </td>
-
-
-                  <td>
-
-                    <span
-                      className={
-                        live.status === "offline"
-                        ? "status-offline"
-                        : "status-online"
-                      }
+                    <div
+                      key={alert.id}
+                      className="flex justify-between items-center border-b border-slate-700 pb-3"
                     >
 
-                      {live.status}
+                      <div>
 
-                    </span>
+                        <p className="font-semibold text-cyan-400">
+                          {alert.hostname}
+                        </p>
 
-                  </td>
+                        <p className="text-sm text-gray-400">
+                          {alert.alert_type} — {alert.message}
+                        </p>
+
+                      </div>
+
+                      <div className="text-right">
+
+                        <span className="text-red-400 font-bold">
+                          {alert.severity}
+                        </span>
+
+                        <p className="text-xs text-gray-400 mt-1">
+                          {formatDateTime(alert.created_at)}
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                  ))
+                }
+
+              </div>
+
+            </div>
+
+          </div>
+
+        )
+      }
 
 
-                  <td>
-                    {live.cpu ?? 0}%
-                  </td>
+      <div className="mt-8 flex gap-4">
+
+        <ExportAlerts />
+
+        <ExportAlertsPDF />
+
+      </div>
 
 
-                  <td>
-                    {live.ram ?? 0}%
-                  </td>
+      <div className="mt-8">
 
-
-                  <td>
-                    {live.disk ?? 0}%
-                  </td>
-
-
-                  <td>
-                    {live.last_seen ? new Date(live.last_seen).toLocaleString() : "-"}
-                  </td>
-
-
-                </tr>
-
-              );
-
-            })
-          }
-
-          </tbody>
-
-        </table>
+        <AlertHistoryChart />
 
       </div>
 

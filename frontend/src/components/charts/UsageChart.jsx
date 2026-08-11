@@ -26,17 +26,17 @@ function UsageChart({ devices = [] }) {
       {
         label: "CPU %",
         data: devices.map((d) => d.cpu),
-        backgroundColor: "#06b6d4",
+        backgroundColor: "#e50914",
       },
       {
         label: "RAM %",
         data: devices.map((d) => d.ram),
-        backgroundColor: "#22c55e",
+        backgroundColor: "#46d369",
       },
       {
         label: "Disk %",
         data: devices.map((d) => d.disk),
-        backgroundColor: "#f59e0b",
+        backgroundColor: "#f5a623",
       },
     ],
   };
@@ -55,12 +55,18 @@ function UsageChart({ devices = [] }) {
         ticks: {
           color: "#ffffff",
         },
+        grid: {
+          color: "rgba(255,255,255,0.08)",
+        },
       },
       y: {
         beginAtZero: true,
         max: 100,
         ticks: {
           color: "#ffffff",
+        },
+        grid: {
+          color: "rgba(255,255,255,0.08)",
         },
       },
     },

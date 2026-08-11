@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { getToken, getRole, logout } from "../services/auth";
-
-const AuthContext = createContext();
+import AuthContext from "./auth-context";
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(getToken());
@@ -9,8 +8,11 @@ export function AuthProvider({ children }) {
   const [username, setUsername] = useState(localStorage.getItem("username"));
 
   useEffect(() => {
-    setToken(getToken());
-    setRole(getRole());
+    async function sync() {
+      setToken(getToken());
+      setRole(getRole());
+    }
+    sync();
   }, []);
 
   const loginUser = (token, role, username) => {
@@ -45,8 +47,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
 }

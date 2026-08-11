@@ -109,7 +109,7 @@ function Departments() {
           <p className="text-4xl font-bold text-green-500 mt-4">
             {
               devices.filter(
-                d => d.status === "Online"
+                d => String(d.status || "").toLowerCase() === "online"
               ).length
             }
           </p>
@@ -125,7 +125,7 @@ function Departments() {
           <p className="text-4xl font-bold text-red-500 mt-4">
             {
               devices.filter(
-                d => d.status !== "Online"
+                d => String(d.status || "").toLowerCase() !== "online"
               ).length
             }
           </p>
@@ -206,16 +206,16 @@ function Departments() {
                 );
 
                 const online = deptDevices.filter(
-                  (d) => d.status === "Online"
+                  (d) => String(d.status || "").toLowerCase() === "online"
                 ).length;
 
                 const offline = deptDevices.length - online;
 
                 const alerts = deptDevices.filter(
                   (d) =>
-                    d.cpu > 90 ||
-                    d.ram > 90 ||
-                    d.disk > 90
+                    (d.cpu ?? 0) > 90 ||
+                    (d.ram ?? 0) > 90 ||
+                    (d.disk ?? 0) > 90
                 ).length;
 
                 const labs = new Set(
@@ -275,16 +275,16 @@ function Departments() {
           );
 
           const online = deptDevices.filter(
-            (d) => d.status === "Online"
+            (d) => String(d.status || "").toLowerCase() === "online"
           ).length;
 
           const offline = deptDevices.length - online;
 
           const alerts = deptDevices.filter(
             (d) =>
-              d.cpu > 90 ||
-              d.ram > 90 ||
-              d.disk > 90
+              (d.cpu ?? 0) > 90 ||
+              (d.ram ?? 0) > 90 ||
+              (d.disk ?? 0) > 90
           ).length;
 
           const percentage =

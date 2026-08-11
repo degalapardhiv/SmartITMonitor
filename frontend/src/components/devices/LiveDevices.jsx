@@ -1,48 +1,83 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import useWebSocket from "../../hooks/useWebSocket";
 
 function LiveDevices() {
 
-  const liveData = useWebSocket();
-
   const [devices, setDevices] = useState([]);
 
 
-  useEffect(() => {
+  useWebSocket((message) => {
 
-    if (
-      liveData &&
-      liveData.type === "device_update"
-    ) {
+    if (!message || !message.type) return;
 
-      setDevices((prev) => {
+    if (message.type === "device_update" && message.device) {
 
-        const exists = prev.find(
-          d => d.id === liveData.device.id
+      const update = message.device;
+
+      setDevices(prev => {
+
+        const exists = prev.some(
+          d => d.id === update.id
         );
-
 
         if (exists) {
 
           return prev.map(d =>
-            d.id === liveData.device.id
-              ? liveData.device
+            d.id === update.id
+              ? { ...d, ...update }
               : d
           );
 
         }
 
-
         return [
           ...prev,
-          liveData.device
+          update
         ];
 
       });
 
+      return;
+
     }
 
-  }, [liveData]);
+    if (message.type === "device_offline" && message.device) {
+
+      setDevices(prev =>
+        prev.map(d =>
+          d.id === message.device.id
+            ? {
+                ...d,
+                ...message.device,
+                status: "offline",
+                last_seen: new Date().toISOString()
+              }
+            : d
+        )
+      );
+
+      return;
+
+    }
+
+    if (message.type === "device_online" && message.device) {
+
+      setDevices(prev =>
+        prev.map(d =>
+          d.id === message.device.id
+            ? {
+                ...d,
+                ...message.device,
+                status: "online",
+                last_seen: new Date().toISOString()
+              }
+            : d
+        )
+      );
+
+    }
+
+  });
 
 
   return (
@@ -90,33 +125,40 @@ function LiveDevices() {
           <tbody>
 
           {
-            devices.map(device => (
+            devices.map(device => {
 
-              <tr key={device.id}>
+              const online =
+                String(device.status || "").toLowerCase() === "online";
 
-                <td>
-                  {device.hostname}
-                </td>
+              return (
 
-                <td>
-                  {device.ip}
-                </td>
+                <tr key={device.id}>
 
-                <td>
-                  {device.cpu}%
-                </td>
+                  <td>
+                    {device.hostname}
+                  </td>
 
-                <td>
-                  {device.ram}%
-                </td>
+                  <td>
+                    {device.ip}
+                  </td>
 
-                <td className="text-green-400">
-                  {device.status}
-                </td>
+                  <td>
+                    {device.cpu ?? 0}%
+                  </td>
 
-              </tr>
+                  <td>
+                    {device.ram ?? 0}%
+                  </td>
 
-            ))
+                  <td className={online ? "text-green-400" : "text-red-400"}>
+                    {device.status}
+                  </td>
+
+                </tr>
+
+              );
+
+            })
           }
 
           </tbody>

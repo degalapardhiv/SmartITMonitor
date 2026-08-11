@@ -2,15 +2,15 @@ from datetime import datetime, timedelta
 
 from jose import jwt
 
-from app.config import SECRET_KEY, ALGORITHM
+from app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 
-def create_token(data: dict):
+def create_token(data: dict) -> str:
 
     payload = data.copy()
 
     expire = datetime.utcnow() + timedelta(
-        hours=24
+        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
     payload["exp"] = expire

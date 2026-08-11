@@ -59,6 +59,15 @@ export function getRole(){
 }
 
 
+export function getUsername(){
+
+  return localStorage.getItem(
+    "username"
+  );
+
+}
+
+
 export function logout(){
 
   localStorage.removeItem(

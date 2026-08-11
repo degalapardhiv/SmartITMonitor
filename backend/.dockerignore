@@ -1,5 +1,10 @@
 venv
+.venv
 __pycache__
 *.pyc
+.env
 .env.backup
+.env.bak
+*.backup
+*.bak
 .git

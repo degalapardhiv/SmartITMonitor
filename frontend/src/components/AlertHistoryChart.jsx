@@ -11,6 +11,15 @@ import {
 
 import api from "../services/api";
 
+const TOOLTIP_STYLE = {
+    backgroundColor: "#1f1f1f",
+    border: "1px solid #333333",
+    color: "#ffffff",
+    borderRadius: "4px"
+};
+
+const TICK_STYLE = { fill: "#a3a3a3", fontSize: 12 };
+
 
 export default function AlertHistoryChart(){
 
@@ -49,17 +58,20 @@ export default function AlertHistoryChart(){
 
                 <LineChart data={data}>
 
-                    <CartesianGrid />
+                    <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
 
-                    <XAxis dataKey="time" />
+                    <XAxis dataKey="time" tick={TICK_STYLE} stroke="#333333" />
 
-                    <YAxis />
+                    <YAxis tick={TICK_STYLE} stroke="#333333" />
 
-                    <Tooltip />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#ffffff" }} />
 
                     <Line
                         type="monotone"
                         dataKey="value"
+                        stroke="#e50914"
+                        strokeWidth={3}
+                        dot={false}
                     />
 
                 </LineChart>

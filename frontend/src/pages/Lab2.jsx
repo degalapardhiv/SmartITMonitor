@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../services/api";
+import useWebSocket, { useSocketStatus } from "../hooks/useWebSocket";
 
 export default function Lab2() {
   const [devices, setDevices] = useState([]);
-  const [connected, setConnected] = useState(false);
+  const socketStatus = useSocketStatus();
   const [error, setError] = useState("");
-  const [labName, setLabName] = useState("Lab 2");
-  const [departmentName, setDepartmentName] = useState("CSE");
+  const [labName] = useState("Lab 2");
+  const [departmentName] = useState("CSE");
 
   const loadDevices = async () => {
     try {
@@ -25,62 +26,65 @@ export default function Lab2() {
     }
   };
 
+  useWebSocket((message) => {
+    if (!message || !message.type) return;
+
+    if (
+      message.type === "device_update" &&
+      message.device
+    ) {
+      setDevices((previous) =>
+        previous.map((device) =>
+          device.id === message.device.id
+            ? { ...device, ...message.device }
+            : device
+        )
+      );
+    }
+
+    if (
+      message.type === "device_offline" &&
+      message.device
+    ) {
+      setDevices((previous) =>
+        previous.map((device) =>
+          device.id === message.device.id
+            ? {
+                ...device,
+                ...message.device,
+                status: "offline",
+              }
+            : device
+        )
+      );
+    }
+
+    if (
+      message.type === "device_online" &&
+      message.device
+    ) {
+      setDevices((previous) =>
+        previous.map((device) =>
+          device.id === message.device.id
+            ? {
+                ...device,
+                ...message.device,
+                status: "online",
+              }
+            : device
+        )
+      );
+    }
+  });
+
   useEffect(() => {
-    loadDevices();
-
-    const protocol =
-      window.location.protocol === "https:" ? "wss" : "ws";
-
-    const socket = new WebSocket(
-      `${protocol}://${window.location.host}/ws`
-    );
-
-    socket.onopen = () => setConnected(true);
-
-    socket.onclose = () => setConnected(false);
-
-    socket.onerror = () => setConnected(false);
-
-    socket.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-
-        if (
-          message.type === "device_update" &&
-          message.device
-        ) {
-          setDevices((previous) =>
-            previous.map((device) =>
-              device.id === message.device.id
-                ? { ...device, ...message.device }
-                : device
-            )
-          );
-        }
-
-        if (
-          message.type === "device_offline" &&
-          message.device
-        ) {
-          setDevices((previous) =>
-            previous.map((device) =>
-              device.id === message.device.id
-                ? {
-                    ...device,
-                    ...message.device,
-                    status: "offline",
-                  }
-                : device
-            )
-          );
-        }
-      } catch (err) {
-        console.error("Invalid WebSocket message:", err);
-      }
-    };
-
-    return () => socket.close();
+    async function sync() {
+      await loadDevices();
+    }
+    sync();
   }, []);
+
+  const connected = socketStatus === "open";
 
   const labDevices = useMemo(
     () =>
@@ -91,7 +95,7 @@ export default function Lab2() {
           String(device.lab || "").trim().toLowerCase() ===
             labName.trim().toLowerCase()
       ),
-    [devices]
+    [devices, departmentName, labName]
   );
 
   const online = labDevices.filter((device) => {

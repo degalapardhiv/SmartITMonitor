@@ -23,9 +23,15 @@ def get_local_ip():
 
 
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = os.getenv(
+    "SMARTIT_API_URL",
+    "http://127.0.0.1:8000",
+).rstrip("/")
 
-CONFIG_FILE = "config.json"
+CONFIG_FILE = os.getenv(
+    "SMARTIT_CONFIG_FILE",
+    "config.json",
+)
 
 
 DEVICE_ID = None
@@ -89,10 +95,21 @@ def register():
     }
 
 
-    response = requests.post(
-        f"{API_URL}/agent/register",
-        json=data
-    )
+    try:
+
+        response = requests.post(
+            f"{API_URL}/agent/register",
+            json=data,
+            timeout=10
+        )
+
+        response.raise_for_status()
+
+    except Exception as e:
+
+        print("Error: failed to register with backend:", e)
+        print("Check that SMARTIT_API_URL points at a running backend.")
+        raise SystemExit(1)
 
 
     result = response.json()
