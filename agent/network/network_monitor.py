@@ -81,18 +81,18 @@ def run_discovery_once():
 
     if not networks:
         logger.info(
-            "No private IPv4 networks detected"
+            "No IPv4 networks found for discovery"
         )
         return
 
     for item in networks:
-        interface = item["interface"]
+        interface = item["interface"] or None
         network = item["network"]
 
         logger.info(
-            "Discovering authorized local network %s on %s",
+            "Discovering network %s on %s",
             network,
-            interface,
+            interface or "any interface",
         )
 
         devices = discover_network(
@@ -102,7 +102,7 @@ def run_discovery_once():
 
         devices = enrich_devices(
             devices,
-            interface,
+            interface or "",
             network,
         )
 

@@ -30,6 +30,8 @@ const ROUTES = [
   "/email-history",
   "/notification-history",
   "/network-discovery",
+  "/cctv",
+  "/os-deployment",
   "/usb-approval",
   "/exam-mode",
   "/lab2",

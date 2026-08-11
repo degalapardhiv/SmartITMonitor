@@ -5,16 +5,19 @@ from sqlalchemy.orm import Session
 from ..alert_model import Alert
 from ..websocket_manager import manager
 from .telegram_service import send_telegram
-
-
-CPU_THRESHOLD = 80
-RAM_THRESHOLD = 90
-DISK_THRESHOLD = 90
+from .email_service import send_email
+from .settings_service import get_alert_thresholds
 
 
 def create_alert(db: Session, device, alert_type, value, severity, message):
 
-    cooldown_time = datetime.utcnow() - timedelta(minutes=5)
+    thresholds = get_alert_thresholds(db)
+
+    cooldown_minutes = thresholds["alert_cooldown_minutes"]
+
+    cooldown_time = datetime.utcnow() - timedelta(
+        minutes=cooldown_minutes
+    )
 
     existing = (
         db.query(Alert)
@@ -72,6 +75,19 @@ def create_alert(db: Session, device, alert_type, value, severity, message):
             f"Type: {alert_type}\n"
             f"Value: {value}%\n"
             f"Severity: {severity.upper()}",
+            alert_id=alert.id,
+        )
+    except Exception:
+        pass
+
+    try:
+        send_email(
+            f"Smart IT Monitor Alert: {alert_type} - {device.hostname}",
+            f"Device: {device.hostname}\n"
+            f"Type: {alert_type}\n"
+            f"Value: {value}%\n"
+            f"Severity: {severity.upper()}\n"
+            f"Message: {message}",
             alert_id=alert.id,
         )
     except Exception:
@@ -139,7 +155,13 @@ def check_device_alert(device, db: Session):
 
     alerts = []
 
-    if device.cpu and device.cpu > CPU_THRESHOLD:
+    thresholds = get_alert_thresholds(db)
+
+    cpu_threshold = thresholds["cpu_threshold"]
+    ram_threshold = thresholds["ram_threshold"]
+    disk_threshold = thresholds["disk_threshold"]
+
+    if device.cpu and device.cpu > cpu_threshold:
         alert = create_alert(
             db,
             device,
@@ -161,7 +183,7 @@ def check_device_alert(device, db: Session):
         if resolved_alerts:
             alerts.extend(resolved_alerts)
 
-    if device.ram and device.ram > RAM_THRESHOLD:
+    if device.ram and device.ram > ram_threshold:
         alert = create_alert(
             db,
             device,
@@ -183,7 +205,7 @@ def check_device_alert(device, db: Session):
         if resolved_alerts:
             alerts.extend(resolved_alerts)
 
-    if device.disk and device.disk > DISK_THRESHOLD:
+    if device.disk and device.disk > disk_threshold:
         alert = create_alert(
             db,
             device,

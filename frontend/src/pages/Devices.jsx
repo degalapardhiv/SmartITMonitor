@@ -38,6 +38,7 @@ function Devices(){
   const [search,setSearch] = useState("");
   const [showAdd,setShowAdd] = useState(false);
   const [editDevice,setEditDevice] = useState(null);
+  const [departments,setDepartments] = useState([]);
 
   const [message,setMessage] = useState("");
 
@@ -125,10 +126,32 @@ function Devices(){
   }
 
 
+  async function loadDepartments(){
+
+    try{
+
+      const response = await api.get("/departments");
+
+      setDepartments(response.data || []);
+
+    }
+    catch(err){
+
+      console.error(
+        "Departments Load Error",
+        err
+      );
+
+    }
+
+  }
+
+
   useEffect(()=>{
 
     async function sync() {
       await loadDevices();
+      await loadDepartments();
     }
 
     sync();
@@ -388,6 +411,23 @@ async function deleteDevice(id){
       <option value="online">Online</option>
       <option value="offline">Offline</option>
     </select>
+
+    <input
+      placeholder="Department"
+      list="departments-list"
+      className="w-full bg-slate-700 text-white p-3 rounded mb-4"
+      value={editDevice.department || ""}
+      onChange={(e)=>setEditDevice({
+        ...editDevice,
+        department:e.target.value
+      })}
+    />
+
+    <datalist id="departments-list">
+      {departments.map((dept)=>(
+        <option key={dept.id} value={dept.name} />
+      ))}
+    </datalist>
 
     <div className="flex gap-3">
 

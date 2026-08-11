@@ -46,35 +46,6 @@ def test_protected_endpoint_rejects_invalid_token(client):
     assert response.status_code == 401
 
 
-@pytest.fixture()
-def viewer_headers(client, db_conn):
-    from conftest import db_execute
-
-    username = f"qa_viewer_{uuid.uuid4().hex[:8]}"
-    admin_login = client.post(
-        "/login",
-        data={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD},
-    )
-    assert admin_login.status_code == 200
-    admin_token = admin_login.json()["access_token"]
-
-    register = client.post(
-        "/register",
-        headers={"Authorization": f"Bearer {admin_token}"},
-        data={"username": username, "password": "ViewerPass123", "role": "viewer"},
-    )
-    assert register.status_code == 200, register.text
-
-    viewer_login = client.post(
-        "/login",
-        data={"username": username, "password": "ViewerPass123"},
-    )
-    assert viewer_login.status_code == 200
-    headers = {"Authorization": f"Bearer {viewer_login.json()['access_token']}"}
-    yield headers
-    db_execute(db_conn, "DELETE FROM users WHERE username = %s", (username,))
-
-
 def test_viewer_can_read_devices(client, viewer_headers):
     response = client.get("/devices", headers=viewer_headers)
     assert response.status_code == 200

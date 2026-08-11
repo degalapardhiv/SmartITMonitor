@@ -5,12 +5,19 @@ import { useAuth } from "../context/auth-context";
 import api from "../services/api";
 import { getWsUrl } from "../hooks/useWebSocket";
 
+
+const CIDR_RE = /^\d+\.\d+\.\d+\.\d+\/\d+$/;
+
+
 function Settings() {
 
   const { role, username } = useAuth();
 
   const isViewer =
     String(role || "").toLowerCase() === "viewer";
+
+  const isAdmin =
+    String(role || "").toLowerCase() === "admin";
 
   const [backendStatus, setBackendStatus] = useState(
     "Checking..."
@@ -161,6 +168,17 @@ function Settings() {
         });
 
       }
+      else{
+
+        setSmtpConfig({
+          smtp_server:"",
+          smtp_port:"",
+          username:"",
+          password:"",
+          receiver:""
+        });
+
+      }
 
     }
     catch(err){
@@ -209,18 +227,17 @@ function Settings() {
 
     try{
 
-      const params = {
+      const body = {
         smtp_server: smtpConfig.smtp_server,
         smtp_port: Number(smtpConfig.smtp_port) || 0,
         username: smtpConfig.username,
-        password: smtpConfig.password,
-        receiver: smtpConfig.receiver
+        receiver: smtpConfig.receiver,
+        password: smtpConfig.password
       };
 
       await api.post(
         "/settings/email/config",
-        null,
-        { params }
+        body
       );
 
       showMessage("success", "SMTP settings saved");
@@ -231,6 +248,37 @@ function Settings() {
       console.error(err);
 
       showMessage("error", "Failed to save SMTP settings");
+
+    }
+    finally{
+
+      setSmtpBusy(false);
+
+    }
+
+  }
+
+
+  async function resetSmtpConfig(){
+
+    if(!window.confirm("Reset SMTP configuration?")) return;
+
+    setSmtpBusy(true);
+
+    try{
+
+      await api.delete("/settings/email/config");
+
+      await loadSmtpConfig();
+
+      showMessage("success", "SMTP settings reset");
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      showMessage("error", "Failed to reset SMTP settings");
 
     }
     finally{
@@ -502,6 +550,8 @@ function Settings() {
 
   async function testEmail(){
 
+    setSmtpBusy(true);
+
     try{
 
       await api.post("/settings/test-email");
@@ -513,7 +563,14 @@ function Settings() {
 
       console.error(err);
 
-      showMessage("error", "Failed to send email test");
+      showMessage("error",
+        err?.response?.data?.detail || "Email test failed"
+      );
+
+    }
+    finally{
+
+      setSmtpBusy(false);
 
     }
 
@@ -538,6 +595,295 @@ function Settings() {
     }
 
   }
+
+
+  const [departments, setDepartments] = useState([]);
+
+  const [newDepartment, setNewDepartment] = useState("");
+
+  const [editingDept, setEditingDept] = useState(null);
+
+  const [departmentsBusy, setDepartmentsBusy] = useState(false);
+
+
+  async function loadDepartments(){
+
+    try{
+
+      const res = await api.get("/departments");
+
+      setDepartments(res.data || []);
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      showMessage("error", "Failed to load departments");
+
+    }
+
+  }
+
+
+  async function addDepartment(){
+
+    if(!newDepartment.trim()) return;
+
+    setDepartmentsBusy(true);
+
+    try{
+
+      await api.post("/departments", { name: newDepartment.trim() });
+
+      setNewDepartment("");
+
+      await loadDepartments();
+
+      showMessage("success", "Department added");
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      showMessage("error",
+        err?.response?.data?.detail || "Failed to add department"
+      );
+
+    }
+    finally{
+
+      setDepartmentsBusy(false);
+
+    }
+
+  }
+
+
+  async function saveDepartment(id){
+
+    if(!editingDept || !editingDept.name.trim()) return;
+
+    setDepartmentsBusy(true);
+
+    try{
+
+      await api.put(`/departments/${id}`, { name: editingDept.name.trim() });
+
+      setEditingDept(null);
+
+      await loadDepartments();
+
+      showMessage("success", "Department updated");
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      showMessage("error",
+        err?.response?.data?.detail || "Failed to update department"
+      );
+
+    }
+    finally{
+
+      setDepartmentsBusy(false);
+
+    }
+
+  }
+
+
+  async function deleteDepartment(id){
+
+    if(!window.confirm("Delete this department?")) return;
+
+    setDepartmentsBusy(true);
+
+    try{
+
+      await api.delete(`/departments/${id}`);
+
+      await loadDepartments();
+
+      showMessage("success", "Department deleted");
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      showMessage("error",
+        err?.response?.data?.detail || "Failed to delete department"
+      );
+
+    }
+    finally{
+
+      setDepartmentsBusy(false);
+
+    }
+
+  }
+
+
+  const [monitorSettings, setMonitorSettings] = useState({
+    cpu_threshold:"",
+    ram_threshold:"",
+    disk_threshold:"",
+    alert_cooldown_minutes:""
+  });
+
+  const [scanRanges, setScanRanges] = useState([]);
+
+  const [newRange, setNewRange] = useState("");
+
+  const [monitorBusy, setMonitorBusy] = useState(false);
+
+
+  async function loadMonitorSettings(){
+
+    try{
+
+      const res = await api.get("/settings/monitor");
+
+      const data = res.data || {};
+
+      setMonitorSettings({
+        cpu_threshold: data.cpu_threshold ?? "",
+        ram_threshold: data.ram_threshold ?? "",
+        disk_threshold: data.disk_threshold ?? "",
+        alert_cooldown_minutes: data.alert_cooldown_minutes ?? ""
+      });
+
+      setScanRanges(data.scan_ranges || []);
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      showMessage("error", "Failed to load monitoring settings");
+
+    }
+
+  }
+
+
+  function monitorPayload(){
+
+    return {
+      cpu_threshold: Number(monitorSettings.cpu_threshold) || 0,
+      ram_threshold: Number(monitorSettings.ram_threshold) || 0,
+      disk_threshold: Number(monitorSettings.disk_threshold) || 0,
+      alert_cooldown_minutes: Number(monitorSettings.alert_cooldown_minutes) || 0,
+      scan_ranges: scanRanges
+    };
+
+  }
+
+
+  async function saveThresholds(){
+
+    setMonitorBusy(true);
+
+    try{
+
+      await api.put("/settings/monitor", monitorPayload());
+
+      showMessage("success", "Alert thresholds saved");
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      showMessage("error",
+        err?.response?.data?.detail || "Failed to save alert thresholds"
+      );
+
+    }
+    finally{
+
+      setMonitorBusy(false);
+
+    }
+
+  }
+
+
+  function addRange(){
+
+    const range = newRange.trim();
+
+    if(!CIDR_RE.test(range)){
+
+      showMessage("error", "Invalid CIDR range");
+
+      return;
+
+    }
+
+    setScanRanges([...scanRanges, range]);
+
+    setNewRange("");
+
+  }
+
+
+  function removeRange(index){
+
+    setScanRanges(
+      scanRanges.filter((_, i) => i !== index)
+    );
+
+  }
+
+
+  async function saveRanges(){
+
+    setMonitorBusy(true);
+
+    try{
+
+      await api.put("/settings/monitor", monitorPayload());
+
+      showMessage("success", "Scan ranges saved");
+
+    }
+    catch(err){
+
+      console.error(err);
+
+      showMessage("error",
+        err?.response?.data?.detail || "Failed to save scan ranges"
+      );
+
+    }
+    finally{
+
+      setMonitorBusy(false);
+
+    }
+
+  }
+
+
+  useEffect(() => {
+
+    if(!isAdmin) return;
+
+    async function sync() {
+      await loadDepartments();
+      await loadMonitorSettings();
+    }
+
+    sync();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
 
 
   return (
@@ -844,7 +1190,7 @@ function Settings() {
 
               <button
                 onClick={saveSmtpConfig}
-                disabled={smtpBusy}
+                disabled={smtpBusy || !isAdmin}
                 className="bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg disabled:opacity-50"
               >
                 {smtpBusy ? "Saving..." : "Save SMTP Settings"}
@@ -853,10 +1199,22 @@ function Settings() {
 
               <button
                 onClick={testEmail}
-                className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg"
+                disabled={smtpBusy}
+                className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg disabled:opacity-50"
               >
                 Test Email
               </button>
+
+
+              {isAdmin && (
+                <button
+                  onClick={resetSmtpConfig}
+                  disabled={smtpBusy}
+                  className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg disabled:opacity-50"
+                >
+                  Reset SMTP Settings
+                </button>
+              )}
 
             </div>
 
@@ -1123,6 +1481,274 @@ function Settings() {
           </div>
 
         </div>
+
+
+        {isAdmin && (
+
+          <div className="bg-slate-800 rounded-xl p-6">
+
+            <h2 className="text-2xl font-bold mb-6">
+              Departments
+            </h2>
+
+            <div className="space-y-3 mb-5">
+
+              {departments.map((dept) => (
+
+                <div
+                  key={dept.id}
+                  className="flex gap-3 items-center"
+                >
+
+                  {editingDept && editingDept.id === dept.id ? (
+
+                    <input
+                      value={editingDept.name}
+                      onChange={(e)=>setEditingDept({
+                        ...editingDept,
+                        name:e.target.value
+                      })}
+                      className="flex-1 bg-slate-700 rounded-lg p-3"
+                    />
+
+                  ) : (
+
+                    <span className="flex-1 text-gray-300">
+                      {dept.name}
+                    </span>
+
+                  )}
+
+                  {editingDept && editingDept.id === dept.id ? (
+
+                    <button
+                      onClick={()=>saveDepartment(dept.id)}
+                      disabled={departmentsBusy}
+                      className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+
+                  ) : (
+
+                    <button
+                      onClick={()=>setEditingDept({
+                        id: dept.id,
+                        name: dept.name
+                      })}
+                      className="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-lg"
+                    >
+                      Edit
+                    </button>
+
+                  )}
+
+                  <button
+                    onClick={()=>deleteDepartment(dept.id)}
+                    disabled={departmentsBusy}
+                    className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+
+                </div>
+
+              ))}
+
+            </div>
+
+            <div className="flex gap-3">
+
+              <input
+                placeholder="New department name"
+                value={newDepartment}
+                onChange={(e)=>setNewDepartment(e.target.value)}
+                className="flex-1 bg-slate-700 rounded-lg p-3"
+              />
+
+              <button
+                onClick={addDepartment}
+                disabled={departmentsBusy}
+                className="bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg disabled:opacity-50"
+              >
+                Add Department
+              </button>
+
+            </div>
+
+          </div>
+
+        )}
+
+
+
+        {isAdmin && (
+
+          <div className="bg-slate-800 rounded-xl p-6">
+
+            <h2 className="text-2xl font-bold mb-6">
+              Alert Thresholds
+            </h2>
+
+            <div className="space-y-4">
+
+              <div>
+
+                <label className="block text-gray-400 mb-2">
+                  CPU Threshold (%)
+                </label>
+
+                <input
+                  type="number"
+                  value={monitorSettings.cpu_threshold}
+                  onChange={(e)=>setMonitorSettings({
+                    ...monitorSettings,
+                    cpu_threshold:e.target.value
+                  })}
+                  className="w-full bg-slate-700 rounded-lg p-3"
+                />
+
+              </div>
+
+
+              <div>
+
+                <label className="block text-gray-400 mb-2">
+                  RAM Threshold (%)
+                </label>
+
+                <input
+                  type="number"
+                  value={monitorSettings.ram_threshold}
+                  onChange={(e)=>setMonitorSettings({
+                    ...monitorSettings,
+                    ram_threshold:e.target.value
+                  })}
+                  className="w-full bg-slate-700 rounded-lg p-3"
+                />
+
+              </div>
+
+
+              <div>
+
+                <label className="block text-gray-400 mb-2">
+                  Disk Threshold (%)
+                </label>
+
+                <input
+                  type="number"
+                  value={monitorSettings.disk_threshold}
+                  onChange={(e)=>setMonitorSettings({
+                    ...monitorSettings,
+                    disk_threshold:e.target.value
+                  })}
+                  className="w-full bg-slate-700 rounded-lg p-3"
+                />
+
+              </div>
+
+
+              <div>
+
+                <label className="block text-gray-400 mb-2">
+                  Alert Cooldown (minutes)
+                </label>
+
+                <input
+                  type="number"
+                  value={monitorSettings.alert_cooldown_minutes}
+                  onChange={(e)=>setMonitorSettings({
+                    ...monitorSettings,
+                    alert_cooldown_minutes:e.target.value
+                  })}
+                  className="w-full bg-slate-700 rounded-lg p-3"
+                />
+
+              </div>
+
+
+              <button
+                onClick={saveThresholds}
+                disabled={monitorBusy}
+                className="bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg disabled:opacity-50"
+              >
+                {monitorBusy ? "Saving..." : "Save Thresholds"}
+              </button>
+
+            </div>
+
+          </div>
+
+        )}
+
+
+
+        {isAdmin && (
+
+          <div className="bg-slate-800 rounded-xl p-6">
+
+            <h2 className="text-2xl font-bold mb-6">
+              Network Scan Ranges
+            </h2>
+
+            <div className="space-y-3 mb-5">
+
+              {scanRanges.map((range,index) => (
+
+                <div
+                  key={range}
+                  className="flex gap-3 items-center"
+                >
+
+                  <span className="flex-1 text-gray-300">
+                    {range}
+                  </span>
+
+                  <button
+                    onClick={()=>removeRange(index)}
+                    className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg"
+                  >
+                    Remove
+                  </button>
+
+                </div>
+
+              ))}
+
+            </div>
+
+
+            <div className="flex gap-3 mb-5">
+
+              <input
+                placeholder="e.g. 192.168.1.0/24"
+                value={newRange}
+                onChange={(e)=>setNewRange(e.target.value)}
+                className="flex-1 bg-slate-700 rounded-lg p-3"
+              />
+
+              <button
+                onClick={addRange}
+                className="bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg"
+              >
+                Add Range
+              </button>
+
+            </div>
+
+
+            <button
+              onClick={saveRanges}
+              disabled={monitorBusy}
+              className="bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg disabled:opacity-50"
+            >
+              {monitorBusy ? "Saving..." : "Save Ranges"}
+            </button>
+
+          </div>
+
+        )}
 
       </div>
       <div className="grid lg:grid-cols-2 gap-8 mt-8">

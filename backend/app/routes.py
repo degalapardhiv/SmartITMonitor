@@ -628,10 +628,24 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @router.post("/scan")
 def scan_devices(
-    network: str,
+    network: str = "",
     current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
+
+    if not network:
+
+        from .services.settings_service import get_scan_ranges
+
+        ranges = get_scan_ranges(db)
+
+        if ranges:
+
+            network = ranges[0]
+
+        else:
+
+            network = "192.168.1.0/24"
 
     devices = scan_network(network)
 
@@ -840,6 +854,15 @@ def update_email_status(
 # ==========================================
 
 from .email_settings_model import EmailSetting
+from pydantic import BaseModel
+
+
+class EmailConfigPayload(BaseModel):
+    smtp_server: str
+    smtp_port: int
+    username: str
+    receiver: str
+    password: str = ""
 
 
 @router.get("/settings/email/config")
@@ -872,11 +895,54 @@ def get_email_config(
 
 @router.post("/settings/email/config")
 def save_email_config(
-    smtp_server: str,
-    smtp_port: int,
-    username: str,
-    password: str,
-    receiver: str,
+    payload: EmailConfigPayload,
+    current_user=Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+
+    config = db.query(
+        EmailSetting
+    ).first()
+
+
+    password = payload.password
+
+
+    if config:
+
+        if not password:
+
+            password = config.password
+
+        config.smtp_server = payload.smtp_server
+        config.smtp_port = payload.smtp_port
+        config.username = payload.username
+        config.password = password
+        config.receiver = payload.receiver
+
+    else:
+
+        config = EmailSetting(
+            smtp_server=payload.smtp_server,
+            smtp_port=payload.smtp_port,
+            username=payload.username,
+            password=password,
+            receiver=payload.receiver
+        )
+
+        db.add(config)
+
+
+    db.commit()
+
+
+    return {
+        "status":"saved"
+    }
+
+
+@router.delete("/settings/email/config")
+def reset_email_config(
     current_user=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
@@ -888,30 +954,14 @@ def save_email_config(
 
     if config:
 
-        config.smtp_server = smtp_server
-        config.smtp_port = smtp_port
-        config.username = username
-        config.password = password
-        config.receiver = receiver
+        db.delete(config)
 
-    else:
-
-        config = EmailSetting(
-            smtp_server=smtp_server,
-            smtp_port=smtp_port,
-            username=username,
-            password=password,
-            receiver=receiver
-        )
-
-        db.add(config)
-
-
-    db.commit()
+        db.commit()
 
 
     return {
-        "status":"saved"
+        "status": "reset",
+        "configured": False
     }
 
 
@@ -965,13 +1015,158 @@ def test_email(
 
     from app.services.email_service import send_email
 
-    send_email(
+    sent = send_email(
         "Smart IT Monitor Test",
         "Email test notification"
     )
 
+    if not sent:
+
+        raise HTTPException(
+            status_code=502,
+            detail="Email sending failed. Check SMTP configuration.",
+        )
+
     return {
         "status":"email test sent"
+    }
+
+
+# ==========================================
+# Monitor Settings (thresholds, scan ranges)
+# ==========================================
+
+from .services.settings_service import (
+    get_alert_thresholds,
+    save_alert_thresholds,
+    get_scan_ranges,
+    save_scan_ranges,
+)
+
+
+class ThresholdPayload(BaseModel):
+    cpu_threshold: int
+    ram_threshold: int
+    disk_threshold: int
+    alert_cooldown_minutes: int
+    scan_ranges: list = None
+
+
+class ScanRangesPayload(BaseModel):
+    ranges: list
+
+
+@router.get("/settings/monitor")
+def get_monitor_settings(
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    thresholds = get_alert_thresholds(db)
+
+    return {
+        "cpu_threshold": thresholds["cpu_threshold"],
+        "ram_threshold": thresholds["ram_threshold"],
+        "disk_threshold": thresholds["disk_threshold"],
+        "alert_cooldown_minutes": thresholds["alert_cooldown_minutes"],
+        "scan_ranges": get_scan_ranges(db),
+    }
+
+
+@router.put("/settings/monitor")
+def update_monitor_settings(
+    payload: ThresholdPayload,
+    current_user=Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+
+    for name, value in {
+        "cpu_threshold": payload.cpu_threshold,
+        "ram_threshold": payload.ram_threshold,
+        "disk_threshold": payload.disk_threshold,
+        "alert_cooldown_minutes": payload.alert_cooldown_minutes,
+    }.items():
+
+        if value < 1 or value > 1000:
+
+            raise HTTPException(
+                status_code=400,
+                detail=f"{name} must be between 1 and 1000",
+            )
+
+    save_alert_thresholds(
+        db,
+        payload.cpu_threshold,
+        payload.ram_threshold,
+        payload.disk_threshold,
+        payload.alert_cooldown_minutes,
+    )
+
+    ranges = payload.scan_ranges
+
+    if ranges is not None:
+
+        from ipaddress import ip_network
+
+        clean = []
+
+        for item in ranges:
+
+            raw = item.strip() if isinstance(item, str) else ""
+
+            if not raw:
+                continue
+
+            try:
+                ip_network(raw, strict=False)
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid network range: {raw}",
+                )
+
+            clean.append(raw)
+
+        save_scan_ranges(db, clean)
+
+    return {
+        "thresholds": get_alert_thresholds(db),
+        "scan_ranges": get_scan_ranges(db),
+    }
+
+
+@router.put("/settings/monitor/ranges")
+def update_scan_ranges(
+    payload: ScanRangesPayload,
+    current_user=Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+
+    from ipaddress import ip_network
+
+    clean = []
+
+    for item in payload.ranges:
+
+        raw = item.strip() if isinstance(item, str) else ""
+
+        if not raw:
+            continue
+
+        try:
+            ip_network(raw, strict=False)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid network range: {raw}",
+            )
+
+        clean.append(raw)
+
+    saved = save_scan_ranges(db, clean)
+
+    return {
+        "scan_ranges": saved,
     }
 
 

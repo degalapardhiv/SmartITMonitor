@@ -58,7 +58,7 @@ def send_email(subject, message, alert_id=None):
 
     if not email_enabled():
 
-        return
+        return False
 
 
     db = SessionLocal()
@@ -76,7 +76,7 @@ def send_email(subject, message, alert_id=None):
 
             logger.warning("Email config missing; skipping send")
 
-            return
+            return False
 
 
         msg = MIMEText(message)
@@ -91,12 +91,23 @@ def send_email(subject, message, alert_id=None):
 
         try:
 
-            server = smtplib.SMTP(
-                config.smtp_server,
-                config.smtp_port
-            )
+            if config.smtp_port == 465:
 
-            server.starttls()
+                server = smtplib.SMTP_SSL(
+                    config.smtp_server,
+                    config.smtp_port,
+                    timeout=15
+                )
+
+            else:
+
+                server = smtplib.SMTP(
+                    config.smtp_server,
+                    config.smtp_port,
+                    timeout=15
+                )
+
+                server.starttls()
 
 
             server.login(
@@ -134,6 +145,8 @@ def send_email(subject, message, alert_id=None):
         db.add(history)
         db.commit()
 
+        return True
+
 
     except Exception as e:
 
@@ -153,6 +166,25 @@ def send_email(subject, message, alert_id=None):
 
         except Exception:
             pass
+
+        try:
+
+            db.add(
+                EmailHistory(
+                    receiver=config.receiver
+                    if config
+                    else "unknown",
+                    subject=subject,
+                    status="FAILED"
+                )
+            )
+
+            db.commit()
+
+        except Exception:
+            db.rollback()
+
+        return False
 
 
     finally:

@@ -14,6 +14,8 @@ from . import settings_model
 from . import email_settings_model
 from . import email_history_model
 from . import notification_history_model
+from . import department_model
+from . import monitor_settings_model
 from .database import Base, engine
 
 # Database Models
@@ -23,6 +25,9 @@ from .user_model import User
 from .alert_model import Alert
 from .network_device_model import NetworkDevice
 from .exam_mode_model import ExamModeSetting, USBRequest
+from .camera_model import Camera
+from .os_image_model import OSImage
+from .deployment_model import Deployment, DeploymentAudit
 
 # API Routers
 from .routes import router
@@ -31,6 +36,10 @@ from .alert_routes import router as alert_router
 from .usb_routes import router as usb_router
 from .exam_mode import router as exam_mode_router
 from .network_routes import router as network_router
+from .department_routes import router as department_router
+from .camera_routes import router as camera_router
+from .os_image_routes import router as os_image_router
+from .deployment_routes import router as deployment_router
 
 # Create all database tables
 Base.metadata.create_all(bind=engine)
@@ -94,6 +103,10 @@ app.include_router(router)
 app.include_router(usb_router)
 app.include_router(exam_mode_router)
 app.include_router(network_router)
+app.include_router(department_router)
+app.include_router(camera_router)
+app.include_router(os_image_router)
+app.include_router(deployment_router)
 
 # ---------------------------------------
 # Root
@@ -150,6 +163,20 @@ def startup_device_metrics():
 
 
 @app.on_event("startup")
+def startup_camera_monitor():
+    from .services.camera_service import start_camera_monitor
+
+    start_camera_monitor()
+
+
+@app.on_event("startup")
+def startup_deployment_monitor():
+    from .services.deployment_service import start_deployment_monitor
+
+    start_deployment_monitor()
+
+
+@app.on_event("startup")
 def seed_exam_mode_settings():
     from .database import SessionLocal
 
@@ -170,6 +197,37 @@ def seed_exam_mode_settings():
                     usb_policy="approval_required",
                 )
             )
+            db.commit()
+
+    finally:
+        db.close()
+
+
+@app.on_event("startup")
+def seed_departments():
+    from .database import SessionLocal
+    from .department_model import Department
+
+    db = SessionLocal()
+
+    try:
+        count = (
+            db.query(Department)
+            .count()
+        )
+
+        if count == 0:
+            for name in [
+                "IT",
+                "HR",
+                "Finance",
+                "Operations",
+                "Unknown",
+            ]:
+                db.add(
+                    Department(name=name)
+                )
+
             db.commit()
 
     finally:

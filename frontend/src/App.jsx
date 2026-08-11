@@ -29,6 +29,8 @@ const Reports = lazy(() => import("./pages/Reports"));
 const Settings = lazy(() => import("./pages/Settings"));
 const EmailHistory = lazy(() => import("./pages/EmailHistory"));
 const NotificationHistory = lazy(() => import("./pages/NotificationHistory"));
+const Cctv = lazy(() => import("./pages/Cctv"));
+const OsDeployment = lazy(() => import("./pages/OsDeployment"));
 
 function App() {
   const { isAuthenticated } = useAuth();
@@ -166,6 +168,28 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <ExamMode />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/cctv"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Cctv />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/os-deployment"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <OsDeployment />
                 </Layout>
               </ProtectedRoute>
             }

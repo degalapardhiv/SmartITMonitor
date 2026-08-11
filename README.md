@@ -23,6 +23,7 @@ The platform supports:
 - Network discovery
 - USB approval workflow
 - Exam mode enforcement
+- OS deployment orchestration
 - Infrastructure analytics
 - Containerized deployment
 
@@ -85,6 +86,20 @@ The platform supports:
 - Global exam mode toggle
 - USB policy enforcement (`approval_required`)
 - Managed-lab policy integration
+
+
+## 💿 OS Deployment
+
+- OS image library with sha256/sha1 checksums
+- Admin approval workflow (deployments blocked until the image is approved)
+- Target selection: all managed computers, department, lab, location, or selected devices
+- Deployment lifecycle: `PENDING` → agent accept → provisioning handoff → `INSTALLING` → `COMPLETED`
+- Offline-target handling and per-deployment `FAILED` states with reasons
+- Checksum verification against the image store before handoff
+- PXE configuration payload generation (kernel, initrd, kickstart URL)
+- Automatic retry for pending deployments
+- Deployment audit log and live status via WebSocket `deployment_update` events
+- Agent-side endpoints to fetch and acknowledge pending deployments
 
 
 ## 🔐 Security
@@ -435,6 +450,30 @@ PUT /exam-mode        (admin)
 ```
 
 
+## OS Deployment
+
+```
+GET    /os-images                         (authenticated)
+POST   /os-images                         (admin)
+PUT    /os-images/{id}                    (admin)
+DELETE /os-images/{id}                    (admin)
+POST   /os-images/{id}/verify-checksum    (authenticated)
+
+GET    /deployments                       (authenticated)
+GET    /deployments/summary               (authenticated)
+GET    /deployments/audit                 (authenticated)
+POST   /deployments                       (admin — image must be approved)
+POST   /deployments/{id}/retry            (admin)
+GET    /deployments/agent/pending         (agent — X-Agent-Token header)
+POST   /deployments/{id}/agent-ack        (agent — X-Agent-Token header)
+```
+
+Deployments target devices by `target_type` (`all`, `department`, `lab`,
+`location`, `selected`). Approved images are verified against the configured
+`SMARTIT_IMAGE_DIR` store before the PXE provisioning handoff
+(`SMARTIT_PXE_DIR`).
+
+
 ## Alerts
 
 ```
@@ -480,6 +519,7 @@ Used for:
 - Live device updates
 - Metric broadcasting
 - Alert creation and automatic resolution events
+- OS deployment status updates
 - Dashboard refresh events
 
 ---
@@ -549,7 +589,8 @@ cd backend
 ```
 
 Covers auth, devices, alerts (including auto-resolve on recovery), network
-discovery, USB approval, and exam mode.
+discovery, USB approval, exam mode, and OS deployment (images, lifecycle,
+agent handshake, and provisioning).
 
 ## Frontend (smoke tests)
 

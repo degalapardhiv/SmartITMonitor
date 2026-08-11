@@ -100,6 +100,20 @@ function Navbar() {
           </Link>
 
           <Link
+            to="/cctv"
+            className={linkClass("/cctv")}
+          >
+            CCTV
+          </Link>
+
+          <Link
+            to="/os-deployment"
+            className={linkClass("/os-deployment")}
+          >
+            OS Deploy
+          </Link>
+
+          <Link
             to="/usb-approval"
             className={linkClass("/usb-approval")}
           >

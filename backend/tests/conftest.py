@@ -156,6 +156,34 @@ def auth_headers(admin_token):
     return {"Authorization": f"Bearer {admin_token}"}
 
 
+@pytest.fixture()
+def viewer_headers(client, db_conn):
+    username = f"qa_viewer_{uuid.uuid4().hex[:8]}"
+
+    admin_login = client.post(
+        "/login",
+        data={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD},
+    )
+    assert admin_login.status_code == 200
+    admin_token = admin_login.json()["access_token"]
+
+    register = client.post(
+        "/register",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        data={"username": username, "password": "ViewerPass123", "role": "viewer"},
+    )
+    assert register.status_code == 200, register.text
+
+    viewer_login = client.post(
+        "/login",
+        data={"username": username, "password": "ViewerPass123"},
+    )
+    assert viewer_login.status_code == 200
+    headers = {"Authorization": f"Bearer {viewer_login.json()['access_token']}"}
+    yield headers
+    db_execute(db_conn, "DELETE FROM users WHERE username = %s", (username,))
+
+
 @pytest.fixture(scope="session")
 def db_conn():
     conn = psycopg2.connect(_db_dsn())

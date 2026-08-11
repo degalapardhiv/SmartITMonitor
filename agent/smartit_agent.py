@@ -29,6 +29,13 @@ INTERVAL = int(os.getenv("SMARTIT_INTERVAL", "5"))
 NETWORK_DISCOVERY_INTERVAL = int(
     os.getenv("SMARTIT_NETWORK_DISCOVERY_INTERVAL", "300")
 )
+REBOOT_CMD = os.getenv(
+    "SMARTIT_REBOOT_CMD",
+    "",
+).strip()
+DEPLOYMENT_POLL_INTERVAL = int(
+    os.getenv("SMARTIT_DEPLOYMENT_POLL_INTERVAL", "30")
+)
 
 
 def collect_metrics():
@@ -78,6 +85,85 @@ def send_metrics():
         print(f"[SmartIT] ERROR: {exc}")
 
 
+def poll_pending_deployment():
+    """Check for a pending OS deployment and hand off to provisioning.
+
+    The backend marks the deployment INSTALLING once the agent accepts.
+    When SMARTIT_REBOOT_CMD is configured (e.g. "systemctl reboot"),
+    the agent performs the real reboot so the machine net-boots into
+    the provisioning system. Without it, the agent only acknowledges
+    the handoff and the backend will fail the deployment on timeout.
+    """
+
+    url = f"{API_URL}/deployments/agent/pending"
+
+    headers = {}
+
+    if AGENT_TOKEN:
+        headers["x-agent-token"] = AGENT_TOKEN
+
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+
+        if response.status_code != 200:
+            return
+
+        pending = response.json()
+
+        if not pending:
+            return
+
+        deployment_id = pending.get("id")
+
+        image = pending.get("image", {})
+
+        print(
+            f"[SmartIT] Deployment {deployment_id} pending: "
+            f"{image.get('name', '')} {image.get('version', '')}"
+        )
+
+        ack_url = f"{API_URL}/deployments/{deployment_id}/agent-ack"
+
+        ack = requests.post(ack_url, headers=headers, timeout=10)
+
+        print(
+            f"[SmartIT] Deployment {deployment_id} acknowledged "
+            f"HTTP={ack.status_code}"
+        )
+
+        if not REBOOT_CMD:
+            print(
+                f"[SmartIT] Deployment {deployment_id}: "
+                "reboot disabled (set SMARTIT_REBOOT_CMD to enable). "
+                "Machine will not net-boot into provisioning."
+            )
+            return
+
+        import subprocess
+
+        result = subprocess.run(
+            REBOOT_CMD,
+            shell=True,
+            timeout=30,
+        )
+
+        print(
+            f"[SmartIT] Reboot command exit code: {result.returncode}"
+        )
+
+    except Exception as exc:
+        print(f"[SmartIT] Deployment poll error: {exc}")
+
+
+def _deployment_loop():
+    while True:
+        try:
+            poll_pending_deployment()
+        except Exception as exc:
+            print(f"[SmartIT] Deployment poll cycle error: {exc}")
+        time.sleep(DEPLOYMENT_POLL_INTERVAL)
+
+
 def main():
     if not DEVICE_ID:
         raise SystemExit(
@@ -98,6 +184,16 @@ def main():
         print("[SmartIT] Network discovery thread started")
     except Exception as exc:
         print(f"[SmartIT] Network discovery unavailable: {exc}")
+
+    try:
+        deployment_thread = threading.Thread(
+            target=_deployment_loop,
+            daemon=True,
+        )
+        deployment_thread.start()
+        print("[SmartIT] Deployment poll thread started")
+    except Exception as exc:
+        print(f"[SmartIT] Deployment poll unavailable: {exc}")
 
     while True:
         send_metrics()

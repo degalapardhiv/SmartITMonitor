@@ -1,14 +1,38 @@
 import ipaddress
+import os
 import socket
 import subprocess
 from typing import Dict, List, Optional
 
 
+def get_network_ranges_from_env() -> List[str]:
+    raw = (
+        os.getenv("SMARTIT_NETWORK_RANGES")
+        or os.getenv("SMARTIT_NETWORK_RANGE")
+        or os.getenv("SMART_MONITOR_NETWORK_RANGES")
+        or ""
+    )
+
+    ranges = []
+
+    for part in raw.split(","):
+        value = part.strip()
+
+        if not value:
+            continue
+
+        try:
+            ranges.append(str(ipaddress.ip_network(value, strict=False)))
+        except ValueError:
+            continue
+
+    return ranges
+
+
 def get_local_networks() -> List[Dict[str, str]]:
     """
-    Return IPv4 networks associated with local interfaces.
-
-    Only private/local IPv4 networks are considered.
+    Return IPv4 networks associated with local interfaces
+    plus any explicit ranges configured via env vars.
     """
     networks = []
 
@@ -19,7 +43,7 @@ def get_local_networks() -> List[Dict[str, str]]:
             stderr=subprocess.DEVNULL,
         )
     except (FileNotFoundError, subprocess.CalledProcessError):
-        return networks
+        output = ""
 
     for line in output.splitlines():
         parts = line.split()
@@ -32,20 +56,38 @@ def get_local_networks() -> List[Dict[str, str]]:
 
         try:
             network = ipaddress.ip_interface(address).network
-
-            if not network.is_private:
-                continue
-
-            networks.append(
-                {
-                    "interface": interface,
-                    "network": str(network),
-                }
-            )
         except ValueError:
             continue
 
-    return networks
+        if network.is_link_local or network.is_loopback:
+            continue
+
+        networks.append(
+            {
+                "interface": interface,
+                "network": str(network),
+            }
+        )
+
+    for network in get_network_ranges_from_env():
+        networks.append(
+            {
+                "interface": "",
+                "network": network,
+            }
+        )
+
+    seen = set()
+    unique = []
+
+    for entry in networks:
+        if entry["network"] in seen:
+            continue
+
+        seen.add(entry["network"])
+        unique.append(entry)
+
+    return unique
 
 
 def discover_network(

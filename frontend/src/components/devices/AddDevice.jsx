@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import api from "../../services/api";
 
 function AddDevice({ onAdded }) {
@@ -15,6 +15,31 @@ function AddDevice({ onAdded }) {
     location:"",
     os:""
   });
+
+  const [departments, setDepartments] = useState([]);
+
+
+  useEffect(() => {
+
+    async function sync() {
+      try{
+
+        const res = await api.get("/departments");
+
+        setDepartments(res.data || []);
+
+      }
+      catch(err){
+        console.error(
+          "Departments Load Error",
+          err
+        );
+      }
+    }
+
+    sync();
+
+  }, []);
 
 
   function handleChange(e){
@@ -68,10 +93,17 @@ function AddDevice({ onAdded }) {
           value={device[key]}
           onChange={handleChange}
           placeholder={key}
+          list={key === "department" ? "departments-list" : undefined}
           className="w-full mb-3 bg-slate-700 p-3 rounded text-white"
         />
 
       ))}
+
+      <datalist id="departments-list">
+        {departments.map((dept)=>(
+          <option key={dept.id} value={dept.name} />
+        ))}
+      </datalist>
 
 
       <button
