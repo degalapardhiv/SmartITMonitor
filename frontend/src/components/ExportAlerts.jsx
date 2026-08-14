@@ -6,7 +6,7 @@ export default function ExportAlerts(){
 
 async function exportAlerts(){
 
-    const res = await api.get("/alerts/");
+    const res = await api.get("/alerts");
 
     const worksheet = XLSX.utils.json_to_sheet(
         res.data.map(alert => ({

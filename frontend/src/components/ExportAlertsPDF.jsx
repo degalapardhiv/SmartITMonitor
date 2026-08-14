@@ -9,7 +9,7 @@ export default function ExportAlertsPDF(){
 
 async function exportPDF(){
 
-    const res = await api.get("/alerts/");
+    const res = await api.get("/alerts");
 
 
     const doc = new jsPDF();

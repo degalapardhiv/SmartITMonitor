@@ -23,6 +23,9 @@ The platform supports:
 - Network discovery
 - USB approval workflow
 - Exam mode enforcement
+- Web Access Control (allow/block domain policies)
+- Software deployment (agent-managed packages)
+- Endpoint activity monitoring
 - OS deployment orchestration
 - Infrastructure analytics
 - Containerized deployment
@@ -86,6 +89,31 @@ The platform supports:
 - Global exam mode toggle
 - USB policy enforcement (`approval_required`)
 - Managed-lab policy integration
+
+
+## 🌐 Web Access Control
+
+- Admin-managed allow/blocklist domain policies
+- Targets: all devices, department, lab, location, or specific device/group
+- Agent-side enforcement via the OS hosts file (`allowlist.conf`)
+- Live sync status (`synced` / `pending` / `failed`) per device with versioning
+- Real-time updates via WebSocket `web_access_update` events
+
+
+## 📦 Software Deployment
+
+- Admin-managed packages (`.exe`/`.msi`) with compatibility matrix (OS/arch)
+- Deploy / uninstall commands with approval workflow
+- Device group targeting
+- Agent-side install/uninstall with progress reporting
+- Real-time updates via WebSocket `software_update` events
+
+
+## 🛰 Endpoint Activity
+
+- Agent-collected activity events (process/app, network, filesystem, URL)
+- Configurable upload cadence pushed to agents
+- Real-time updates via WebSocket `activity_update` events
 
 
 ## 💿 OS Deployment
@@ -217,8 +245,12 @@ SmartITMonitor/
 │
 ├── agent/
 │   ├── smartit_agent.py      # metrics agent (env-driven)
+│   ├── software_deployment.py # software install/uninstall agent loop
+│   ├── web_access.py         # web access (allow/block) enforcement loop
 │   ├── monitor.py            # legacy agent (token-based metrics)
 │   ├── agent.py              # legacy agent (config.json flow)
+│   ├── deploy.sh             # one-command endpoint onboarding (register + env)
+│   ├── .agent.env.example    # LAN-tuned agent environment template
 │   ├── network/              # LAN discovery module
 │   ├── usb/                  # USB event monitor
 │   └── run.sh
@@ -336,31 +368,56 @@ container, so the admin account and Telegram alerts are configured through
 ### Agent configuration
 
 The monitoring agent reads its settings from `agent/.agent.env` (or the
-environment). Example:
+environment). Example with the LAN-tuned (real-time) defaults:
 
 ```bash
-SMARTIT_API_URL=http://localhost:8000
+SMARTIT_API_URL=http://<server-ip>:8000
 SMARTIT_DEVICE_ID=1
 SMARTIT_AGENT_TOKEN=<device agent token>
+
+# Metrics heartbeat (seconds) — drives live online/offline status.
 SMARTIT_INTERVAL=5
-SMARTIT_NETWORK_DISCOVERY_INTERVAL=300   # seconds between LAN discovery scans
-SMARTIT_NETWORK_DISCOVERY_RANGE=192.168.1.0/24
+
+# LAN discovery cadence (seconds).
+SMARTIT_NETWORK_DISCOVERY_INTERVAL=60
+# Comma-separated ranges to scan beyond the agent's own subnet/VLAN.
+# Required when endpoints span multiple subnets behind the switches.
+SMARTIT_NETWORK_RANGES=10.0.0.0/24,192.168.1.0/24
+
+# OS deployment poll (seconds) and reboot command for PXE handoff.
+SMARTIT_DEPLOYMENT_POLL_INTERVAL=15
+# SMARTIT_REBOOT_CMD=systemctl reboot
+
+# Endpoint activity / software deployment / web access cadence (seconds).
+SMARTIT_ACTIVITY_INTERVAL=30
+SMARTIT_SOFTWARE_POLL_INTERVAL=30
+SMARTIT_WEB_ACCESS_POLL_INTERVAL=15
 ```
 
 The agent runs a metrics loop (heartbeats + CPU/RAM/Disk submission) and, in a
 separate daemon thread, periodically runs LAN host discovery via `nmap` and
 submits the results to `POST /network/discovery`. Both loops are env-driven.
 
-Install the agent deps and start it with:
+### Onboarding endpoints (deploy.sh)
+
+Run once on every monitored endpoint to register it and write a tuned
+`agent/.agent.env`:
+
+```bash
+./agent/deploy.sh http://<server-ip>:8000 --service
+```
+
+`--service` also installs and starts a `systemd` unit (`smartit-agent`).
+Devices can also self-register manually through `POST /agent/register`, which
+returns the `device_id` and `agent_token` to use.
+
+Install the agent deps and start it manually with:
 
 ```bash
 python3 -m venv .venv-agent
 .venv-agent/bin/pip install -r agent/requirements.txt
 ./agent/run.sh
 ```
-
-Devices can self-register through `POST /agent/register`, which returns the
-`device_id` and `agent_token` to use.
 
 ---
 
@@ -450,6 +507,58 @@ PUT /exam-mode        (admin)
 ```
 
 
+## Web Access Control
+
+```
+POST   /web-access/policies                     (admin)
+GET    /web-access/policies                     (admin)
+GET    /web-access/policies/{id}                (admin)
+PUT    /web-access/policies/{id}                (admin)
+DELETE /web-access/policies/{id}                (admin)
+POST   /web-access/policies/{id}/domains        (admin)
+DELETE /web-access/policies/{id}/domains/{id}   (admin)
+POST   /web-access/policies/{id}/targets        (admin)
+DELETE /web-access/policies/{id}/targets/{id}   (admin)
+GET    /web-access/policies/{id}/devices        (admin)
+GET    /web-access/sync-logs                    (admin)
+GET    /web-access/stats                        (admin)
+GET    /web-access/agent/policy                 (agent — X-Agent-Token header)
+POST   /web-access/agent/sync-result            (agent — X-Agent-Token header)
+```
+
+
+## Software Deployment
+
+```
+GET    /software/packages                          (authenticated)
+POST   /software/packages                          (admin)
+PUT    /software/packages/{id}                     (admin)
+POST   /software/packages/{id}/approve             (admin)
+DELETE /software/packages/{id}                     (admin)
+GET    /software/packages/{id}/download            (agent)
+
+GET    /software/groups                            (authenticated)
+POST   /software/groups                            (admin)
+PUT    /software/groups/{id}                       (admin)
+POST   /software/groups/{id}/members               (admin)
+DELETE /software/groups/{id}/members               (admin)
+
+GET    /software/preview                           (admin)
+POST   /software/deployments                       (admin)
+GET    /software/deployments                       (authenticated)
+GET    /software/deployments/{id}/events           (authenticated)
+POST   /software/deployments/{id}/cancel           (admin)
+GET    /software/inventory                         (authenticated)
+
+POST   /software/agent/device-info                 (agent)
+GET    /software/agent/work                        (agent)
+GET    /software/agent/download/{target_id}        (agent)
+POST   /software/agent/status                      (agent)
+POST   /software/agent/result                      (agent)
+POST   /software/agent/inventory                   (agent)
+```
+
+
 ## OS Deployment
 
 ```
@@ -514,12 +623,19 @@ Endpoint:
 /ws
 ```
 
-Used for:
+Used for (all broadcast live, with automatic client reconnection):
 
-- Live device updates
+- Live device updates (`device_update`) and online/offline (`device_online` / `device_offline`, `device_deleted`)
 - Metric broadcasting
-- Alert creation and automatic resolution events
-- OS deployment status updates
+- Alert creation (`alert`) and automatic resolution (`alert_resolved`)
+- OS deployment status updates (`deployment_update`)
+- Software deployment updates (`software_update`)
+- Web Access Control changes (`web_access_update`)
+- Endpoint activity (`activity_update`)
+- Threat events (`threat_detected` / `threat_update`)
+- Camera / lab alerts
+- Notification history (`notification`)
+- Settings changes (`settings_changed`)
 - Dashboard refresh events
 
 ---
@@ -589,8 +705,9 @@ cd backend
 ```
 
 Covers auth, devices, alerts (including auto-resolve on recovery), network
-discovery, USB approval, exam mode, and OS deployment (images, lifecycle,
-agent handshake, and provisioning).
+discovery, USB approval, exam mode, OS deployment (images, lifecycle, agent
+handshake, and provisioning), software deployment, web access control,
+endpoint activity, cameras, settings, and threat protection.
 
 ## Frontend (smoke tests)
 
@@ -628,8 +745,11 @@ npm run build   # production build
 - [x] Docker deployment completed
 - [x] Alert cooldown and auto-resolve on recovery completed
 - [x] Agent-side network discovery integration completed
-- [x] Backend test suite completed (35 tests)
+- [x] Backend test suite completed (151 tests)
 - [x] Frontend smoke tests + lint completed
+- [x] Web Access Control completed
+- [x] Software deployment completed
+- [x] Real-time LAN tuning (switch environment) completed
 - [x] Documentation completed
 
 ---

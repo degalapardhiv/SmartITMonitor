@@ -14,10 +14,6 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Layout from "./components/layout/Layout";
 
 import Login from "./pages/Login";
-import Lab2 from "./pages/Lab2";
-import NetworkDiscovery from "./pages/NetworkDiscovery";
-import USBApproval from "./pages/USBApproval";
-import ExamMode from "./pages/ExamMode";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Devices = lazy(() => import("./pages/Devices"));
@@ -31,22 +27,32 @@ const EmailHistory = lazy(() => import("./pages/EmailHistory"));
 const NotificationHistory = lazy(() => import("./pages/NotificationHistory"));
 const Cctv = lazy(() => import("./pages/Cctv"));
 const OsDeployment = lazy(() => import("./pages/OsDeployment"));
+const EndpointActivity = lazy(() => import("./pages/EndpointActivity"));
+const SoftwareDeployment = lazy(() => import("./pages/SoftwareDeployment"));
+const NetworkDiscovery = lazy(() => import("./pages/NetworkDiscovery"));
+const USBApproval = lazy(() => import("./pages/USBApproval"));
+const ExamMode = lazy(() => import("./pages/ExamMode"));
+const Lab2 = lazy(() => import("./pages/Lab2"));
+const Threats = lazy(() => import("./pages/Threats"));
+const WebAccessControl = lazy(() => import("./pages/WebAccessControl"));
 
 function App() {
   const { isAuthenticated } = useAuth();
 
+  const shell = (page) => <Layout>{page}</Layout>;
+
   return (
     <BrowserRouter>
       <Suspense fallback={<div className="text-white p-10">Loading...</div>}>
-
         <Routes>
-
           <Route
             path="/login"
             element={
-              isAuthenticated
-                ? <Navigate to="/" replace />
-                : <Login />
+              isAuthenticated ? (
+                <Navigate to="/" replace />
+              ) : (
+                <Login />
+              )
             }
           />
 
@@ -54,7 +60,7 @@ function App() {
             path="/"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                {shell(<Dashboard />)}
               </ProtectedRoute>
             }
           />
@@ -63,7 +69,7 @@ function App() {
             path="/devices"
             element={
               <ProtectedRoute>
-                <Devices />
+                {shell(<Devices />)}
               </ProtectedRoute>
             }
           />
@@ -72,7 +78,7 @@ function App() {
             path="/devices/:id"
             element={
               <ProtectedRoute>
-                <DeviceDetails />
+                {shell(<DeviceDetails />)}
               </ProtectedRoute>
             }
           />
@@ -81,7 +87,7 @@ function App() {
             path="/departments"
             element={
               <ProtectedRoute>
-                <Departments />
+                {shell(<Departments />)}
               </ProtectedRoute>
             }
           />
@@ -90,7 +96,7 @@ function App() {
             path="/alerts"
             element={
               <ProtectedRoute>
-                <Alerts />
+                {shell(<Alerts />)}
               </ProtectedRoute>
             }
           />
@@ -99,7 +105,7 @@ function App() {
             path="/alert-center"
             element={
               <ProtectedRoute>
-                <AlertCenter />
+                {shell(<AlertCenter />)}
               </ProtectedRoute>
             }
           />
@@ -108,7 +114,7 @@ function App() {
             path="/reports"
             element={
               <ProtectedRoute>
-                <Reports />
+                {shell(<Reports />)}
               </ProtectedRoute>
             }
           />
@@ -117,7 +123,7 @@ function App() {
             path="/settings"
             element={
               <ProtectedRoute>
-                <Settings />
+                {shell(<Settings />)}
               </ProtectedRoute>
             }
           />
@@ -126,7 +132,7 @@ function App() {
             path="/email-history"
             element={
               <ProtectedRoute>
-                <EmailHistory />
+                {shell(<EmailHistory />)}
               </ProtectedRoute>
             }
           />
@@ -135,7 +141,7 @@ function App() {
             path="/notification-history"
             element={
               <ProtectedRoute>
-                <NotificationHistory />
+                {shell(<NotificationHistory />)}
               </ProtectedRoute>
             }
           />
@@ -144,9 +150,7 @@ function App() {
             path="/network-discovery"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <NetworkDiscovery />
-                </Layout>
+                {shell(<NetworkDiscovery />)}
               </ProtectedRoute>
             }
           />
@@ -155,9 +159,7 @@ function App() {
             path="/usb-approval"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <USBApproval />
-                </Layout>
+                {shell(<USBApproval />)}
               </ProtectedRoute>
             }
           />
@@ -166,9 +168,7 @@ function App() {
             path="/exam-mode"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <ExamMode />
-                </Layout>
+                {shell(<ExamMode />)}
               </ProtectedRoute>
             }
           />
@@ -177,9 +177,7 @@ function App() {
             path="/cctv"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <Cctv />
-                </Layout>
+                {shell(<Cctv />)}
               </ProtectedRoute>
             }
           />
@@ -188,9 +186,43 @@ function App() {
             path="/os-deployment"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <OsDeployment />
-                </Layout>
+                {shell(<OsDeployment />)}
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/endpoint-activity"
+            element={
+              <ProtectedRoute>
+                {shell(<EndpointActivity />)}
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/software-deployment"
+            element={
+              <ProtectedRoute>
+                {shell(<SoftwareDeployment />)}
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/threats"
+            element={
+              <ProtectedRoute>
+                {shell(<Threats />)}
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/web-access"
+            element={
+              <ProtectedRoute>
+                {shell(<WebAccessControl />)}
               </ProtectedRoute>
             }
           />
@@ -199,9 +231,7 @@ function App() {
             path="/lab2"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <Lab2 />
-                </Layout>
+                {shell(<Lab2 />)}
               </ProtectedRoute>
             }
           />
@@ -215,9 +245,7 @@ function App() {
               />
             }
           />
-
         </Routes>
-
       </Suspense>
     </BrowserRouter>
   );

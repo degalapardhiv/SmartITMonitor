@@ -111,12 +111,12 @@ export default function Cctv() {
 
   const statusBadge = (status) => {
     if (status === "online") {
-      return <span className="px-3 py-1 rounded-full text-sm font-semibold bg-green-500/20 text-green-400 border border-green-500/40">● Online</span>;
+      return <span className="ui-badge ui-badge-success">● Online</span>;
     }
     if (status === "offline") {
-      return <span className="px-3 py-1 rounded-full text-sm font-semibold bg-red-500/20 text-red-400 border border-red-500/40">● Offline</span>;
+      return <span className="ui-badge ui-badge-danger">● Offline</span>;
     }
-    return <span className="px-3 py-1 rounded-full text-sm font-semibold bg-gray-500/20 text-gray-400 border border-gray-500/40">● Unknown</span>;
+    return <span className="ui-badge ui-badge-neutral">● Unknown</span>;
   };
 
   const StreamView = ({ camera }) => {
@@ -164,18 +164,18 @@ export default function Cctv() {
   }
 
   return (
-    <div className="p-6">
+    <div>
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="ui-page-header !mb-6">
         <div>
-          <h1 className="text-3xl font-bold">CCTV Cameras</h1>
-          <p className="text-gray-400 mt-1">Camera registry and live streams</p>
+          <h1 className="ui-page-title">CCTV Cameras</h1>
+          <p className="ui-page-subtitle">Camera registry and live streams</p>
         </div>
 
         {isAdmin && (
           <button
             onClick={openCreate}
-            className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-5 py-2 rounded-lg transition"
+            className="ui-btn ui-btn-primary"
           >
             + Add Camera
           </button>
@@ -183,13 +183,13 @@ export default function Cctv() {
       </div>
 
       {success && (
-        <div className="mb-4 bg-green-500/10 border border-green-500/40 text-green-400 px-4 py-3 rounded-lg">
+        <div className="mb-4 rounded-lg border border-green-500/30 bg-green-500/10 text-[#46d369] px-4 py-3">
           {success}
         </div>
       )}
 
       {error && (
-        <div className="mb-4 bg-red-500/10 border border-red-500/40 text-red-400 px-4 py-3 rounded-lg">
+        <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 text-[#e6797e] px-4 py-3">
           {error}
         </div>
       )}
@@ -197,52 +197,52 @@ export default function Cctv() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="mb-6 bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4"
+          className="ui-card mb-6 p-6 space-y-4"
         >
-          <h2 className="text-xl font-bold">
+          <h2 className="ui-card-title">
             {editing ? `Edit Camera: ${editing.name}` : "Add New Camera"}
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Name *</label>
+              <label className="ui-field-label">Name *</label>
               <input
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="e.g. Main Entrance"
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                className="ui-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">IP Address *</label>
+              <label className="ui-field-label">IP Address *</label>
               <input
                 required
                 value={form.ip}
                 onChange={(e) => setForm({ ...form, ip: e.target.value })}
                 placeholder="e.g. 192.168.1.101"
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                className="ui-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Stream URL</label>
+              <label className="ui-field-label">Stream URL</label>
               <input
                 value={form.stream_url}
                 onChange={(e) => setForm({ ...form, stream_url: e.target.value })}
                 placeholder="http://ip/video.mjpg or rtsp://ip:554/stream"
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                className="ui-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Location</label>
+              <label className="ui-field-label">Location</label>
               <input
                 value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
                 placeholder="e.g. Building A, Ground Floor"
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                className="ui-input"
               />
             </div>
           </div>
@@ -251,14 +251,14 @@ export default function Cctv() {
             <button
               type="submit"
               disabled={saving}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-5 py-2 rounded-lg transition disabled:opacity-50"
+              className="ui-btn ui-btn-primary"
             >
               {saving ? "Saving..." : editing ? "Save Changes" : "Add Camera"}
             </button>
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="bg-slate-600 hover:bg-slate-700 text-white font-semibold px-5 py-2 rounded-lg transition"
+              className="ui-btn ui-btn-secondary"
             >
               Cancel
             </button>
@@ -267,7 +267,7 @@ export default function Cctv() {
       )}
 
       {cameras.length === 0 && !showForm && (
-        <div className="text-center text-gray-400 py-16 bg-slate-800/50 border border-slate-700 rounded-xl">
+        <div className="ui-empty">
           No cameras registered yet.
         </div>
       )}
@@ -276,23 +276,23 @@ export default function Cctv() {
         {cameras.map((camera) => (
           <div
             key={camera.id}
-            className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden"
+            className="ui-card overflow-hidden"
           >
             <StreamView camera={camera} />
 
             <div className="p-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold">{camera.name}</h3>
+                <h3 className="text-lg font-bold text-white">{camera.name}</h3>
                 {statusBadge(camera.status)}
               </div>
 
-              <div className="mt-3 space-y-1 text-sm text-gray-400">
-                <p><span className="text-gray-500">IP:</span> {camera.ip}</p>
+              <div className="mt-3 space-y-1 text-sm text-[var(--ds-text-2)]">
+                <p><span className="text-[var(--ds-text-3)]">IP:</span> {camera.ip}</p>
                 {camera.location && (
-                  <p><span className="text-gray-500">Location:</span> {camera.location}</p>
+                  <p><span className="text-[var(--ds-text-3)]">Location:</span> {camera.location}</p>
                 )}
                 <p>
-                  <span className="text-gray-500">Last seen:</span>{" "}
+                  <span className="text-[var(--ds-text-3)]">Last seen:</span>{" "}
                   {camera.last_seen ? new Date(camera.last_seen).toLocaleString() : "Never"}
                 </p>
               </div>
@@ -302,19 +302,19 @@ export default function Cctv() {
                   <button
                     onClick={() => handleCheck(camera)}
                     disabled={checking === camera.id}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                    className="ui-btn ui-btn-secondary ui-btn-sm"
                   >
                     {checking === camera.id ? "Checking..." : "Check Now"}
                   </button>
                   <button
                     onClick={() => openEdit(camera)}
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition"
+                    className="ui-btn ui-btn-ghost ui-btn-sm"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(camera)}
-                    className="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition"
+                    className="ui-btn ui-btn-danger ui-btn-sm"
                   >
                     Delete
                   </button>

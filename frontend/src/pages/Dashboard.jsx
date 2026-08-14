@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Layout from "../components/layout/Layout";
 import AlertCharts from "../components/charts/AlertCharts";
 import useWebSocket from "../hooks/useWebSocket";
 import api from "../services/api";
@@ -416,9 +415,7 @@ function Dashboard() {
 
 
   return (
-
-    <Layout>
-
+    <>
       {offlineAlert && (
 
         <div className="offline-alert">
@@ -437,63 +434,75 @@ function Dashboard() {
 
       )}
 
-      <div className="mb-8">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
 
-        <h1 className="text-4xl font-bold text-white">
-          Dashboard
-        </h1>
+        <div>
 
-        <p className="text-gray-400 mt-2">
-          Smart IT Monitor Overview
-        </p>
+          <h1 className="text-[26px] font-bold tracking-tight text-white">
+            Dashboard
+          </h1>
 
+          <p className="text-sm text-[var(--ds-text-2)] mt-1">
+            Smart IT Monitor Overview
+          </p>
 
-        <select
-          className="mt-5 bg-slate-800 text-white p-3 rounded-lg"
-          value={selectedDevice}
-          onChange={(e)=>setSelectedDevice(Number(e.target.value))}
-        >
+        </div>
 
-          {
-            devices.map(device => (
+        <div className="flex flex-col gap-1">
 
-              <option
-                key={device.id}
-                value={device.id}
-              >
-                {device.hostname}
-              </option>
+          <label className="text-[11px] uppercase tracking-wider text-[var(--ds-text-3)] font-semibold">
+            Monitoring
+          </label>
 
-            ))
-          }
+          <select
+            className="ui-input"
+            style={{ width: 240 }}
+            value={selectedDevice}
+            onChange={(e)=>setSelectedDevice(Number(e.target.value))}
+          >
 
-        </select>
+            {
+              devices.map(device => (
+
+                <option
+                  key={device.id}
+                  value={device.id}
+                >
+                  {device.hostname}
+                </option>
+
+              ))
+            }
+
+          </select>
+
+        </div>
 
       </div>
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
 
 
-        <Card title="Total Devices" value={stats.total}/>
+        <Card title="Total Devices" value={stats.total} tone="neutral"/>
 
-        <Card title="Online Devices" value={stats.online}/>
+        <Card title="Online Devices" value={stats.online} tone="success"/>
 
-        <Card title="Offline Devices" value={stats.offline}/>
+        <Card title="Offline Devices" value={stats.offline} tone="danger"/>
 
-        <Card title="Alerts" value={stats.alerts}/>
+        <Card title="Alerts" value={stats.alerts} tone="warning"/>
 
-        <Card title="Total Alert Events" value={stats.total_alerts || 0}/>
+        <Card title="Total Alert Events" value={stats.total_alerts || 0} tone="neutral"/>
 
-        <Card title="Open Alerts" value={stats.open_alerts || 0}/>
+        <Card title="Open Alerts" value={stats.open_alerts || 0} tone="warning"/>
 
-        <Card title="Resolved Alerts" value={stats.resolved_alerts || 0}/>
+        <Card title="Resolved Alerts" value={stats.resolved_alerts || 0} tone="success"/>
 
-        <Card title="Critical Alerts" value={stats.critical_alerts || 0}/>
+        <Card title="Critical Alerts" value={stats.critical_alerts || 0} tone="danger"/>
 
-        <Card title="Departments" value={stats.departments}/>
+        <Card title="Departments" value={stats.departments} tone="neutral"/>
 
-        <Card title="Labs" value={stats.labs}/>
+        <Card title="Labs" value={stats.labs} tone="neutral"/>
 
 
       </div>
@@ -508,67 +517,66 @@ function Dashboard() {
 
       <div className="mt-8">
 
-        <h2 className="text-2xl font-bold text-white mb-4">
+        <h2 className="text-lg font-bold text-white mb-4 tracking-tight">
           Live Device Monitor
         </h2>
 
 
         {selectedDeviceData ? (
 
-          <div className="bg-slate-800 rounded-xl p-6">
+          <div className="ui-card p-6">
 
-            <h3 className="text-cyan-400 text-2xl">
-              {selectedDeviceData.hostname}
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
 
+              <h3 className="text-2xl font-bold text-white">
+                {selectedDeviceData.hostname}
+              </h3>
 
-            <div className="grid grid-cols-3 gap-5 mt-5">
-
-
-              <div>
-                CPU
-                <p className="text-3xl text-green-400">
-                  {selectedDeviceData.cpu ?? 0}%
-                </p>
-              </div>
-
-
-              <div>
-                RAM
-                <p className="text-3xl text-yellow-400">
-                  {selectedDeviceData.ram ?? 0}%
-                </p>
-              </div>
-
-
-              <div>
-                Disk
-                <p className="text-3xl text-purple-400">
-                  {selectedDeviceData.disk ?? 0}%
-                </p>
-              </div>
-
+              <span className={`ui-badge ${String(selectedDeviceData.status || "").toLowerCase() === "online" ? "ui-badge-success" : "ui-badge-danger"}`}>
+                {selectedDeviceData.status || "unknown"}
+              </span>
 
             </div>
 
 
-            <p className="mt-5 text-green-400">
-              Status: {selectedDeviceData.status}
-            </p>
+            <div className="grid grid-cols-3 gap-5">
 
-            <p className="mt-2 text-gray-400 text-sm">
+              <div className="ui-stat !p-4">
+                <div className="ui-stat-label">CPU</div>
+                <p className="ui-stat-value !text-2xl mt-1 text-green-400">
+                  {selectedDeviceData.cpu ?? 0}%
+                </p>
+              </div>
+
+              <div className="ui-stat !p-4">
+                <div className="ui-stat-label">RAM</div>
+                <p className="ui-stat-value !text-2xl mt-1 text-yellow-400">
+                  {selectedDeviceData.ram ?? 0}%
+                </p>
+              </div>
+
+              <div className="ui-stat !p-4">
+                <div className="ui-stat-label">Disk</div>
+                <p className="ui-stat-value !text-2xl mt-1 text-purple-400">
+                  {selectedDeviceData.disk ?? 0}%
+                </p>
+              </div>
+
+            </div>
+
+
+            <p className="mt-5 text-sm text-[var(--ds-text-2)]">
               Last Seen: {
                 formatDateTime(selectedDeviceData.last_seen)
               }
             </p>
-
 
           </div>
 
 
         ) : (
 
-          <p className="text-gray-400">
+          <p className="text-[var(--ds-text-3)]">
             Waiting for live device data...
           </p>
 
@@ -606,7 +614,7 @@ function Dashboard() {
       {
         liveAlert && (
 
-          <div className="fixed bottom-6 right-6 alert-popup alert-high text-white p-5 rounded-xl shadow-xl">
+          <div className="fixed bottom-6 right-6 alert-popup alert-high text-white p-5 rounded-xl shadow-xl border-white/10" style={{ borderLeftColor: "#c22a32", borderLeftWidth: 5 }}>
 
             <h3 className="font-bold text-lg">
               Alert: {liveAlert.severity}
@@ -635,52 +643,68 @@ function Dashboard() {
 
           <div className="mt-8">
 
-            <h2 className="text-2xl font-bold text-white mb-4">
+            <h2 className="text-lg font-bold text-white mb-4 tracking-tight">
               Recent Live Alerts
             </h2>
 
-            <div className="bg-slate-800 rounded-xl p-6">
+            <div className="ui-table-wrap">
 
-              <div className="space-y-3">
+              <table className="ui-table">
 
-                {
-                  liveAlerts.slice(0, 10).map(alert => (
+                <thead>
 
-                    <div
-                      key={alert.id}
-                      className="flex justify-between items-center border-b border-slate-700 pb-3"
-                    >
+                  <tr>
 
-                      <div>
+                    <th>Device</th>
+                    <th>Type</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th>Time</th>
 
-                        <p className="font-semibold text-cyan-400">
-                          {alert.hostname}
-                        </p>
+                  </tr>
 
-                        <p className="text-sm text-gray-400">
-                          {alert.alert_type} — {alert.message}
-                        </p>
+                </thead>
 
-                      </div>
+                <tbody>
 
-                      <div className="text-right">
+                  {
+                    liveAlerts.slice(0, 10).map(alert => (
 
-                        <span className="text-red-400 font-bold">
-                          {alert.severity}
-                        </span>
+                      <tr key={alert.id}>
 
-                        <p className="text-xs text-gray-400 mt-1">
+                        <td>
+                          <p className="font-semibold text-white">{alert.hostname}</p>
+                          <p className="text-xs text-[var(--ds-text-3)]">{alert.message}</p>
+                        </td>
+
+                        <td>
+                          <span className="ui-badge ui-badge-neutral">{alert.alert_type}</span>
+                        </td>
+
+                        <td>
+                          <span className={`ui-badge ${severityBadge(alert.severity)}`}>
+                            {alert.severity}
+                          </span>
+                        </td>
+
+                        <td>
+                          <span className={`ui-badge ${String(alert.status || "OPEN").toUpperCase() === "RESOLVED" ? "ui-badge-success" : "ui-badge-warning"}`}>
+                            {alert.status || "OPEN"}
+                          </span>
+                        </td>
+
+                        <td className="whitespace-nowrap text-[var(--ds-text-2)]">
                           {formatDateTime(alert.created_at)}
-                        </p>
+                        </td>
 
-                      </div>
+                      </tr>
 
-                    </div>
+                    ))
+                  }
 
-                  ))
-                }
+                </tbody>
 
-              </div>
+              </table>
 
             </div>
 
@@ -705,25 +729,52 @@ function Dashboard() {
 
       </div>
 
-
-    </Layout>
+    </>
 
   );
 
 }
 
 
-function Card({title,value}) {
+function severityBadge(level) {
+
+  const lvl = String(level || "").toUpperCase();
+
+  if(lvl === "CRITICAL" || lvl === "HIGH")
+    return "ui-badge-danger";
+
+  if(lvl === "MEDIUM" || lvl === "WARNING")
+    return "ui-badge-warning";
+
+  return "ui-badge-success";
+
+}
+
+
+function Card({title,value,tone}) {
+
+  const toneColor = {
+
+    danger: "var(--ds-danger)",
+
+    success: "var(--ds-success)",
+
+    warning: "var(--ds-warning)",
+
+    neutral: "var(--ds-text)",
+
+  }[tone] || "var(--ds-text)";
+
 
   return (
 
-    <div className="bg-slate-800 rounded-xl p-6 shadow-lg">
+    <div className="ui-stat">
 
-      <h2 className="text-gray-400">
+      <div className="ui-stat-label">
         {title}
-      </h2>
+      </div>
 
-      <p className="text-5xl font-bold text-cyan-400 mt-3">
+      <p className="ui-stat-value" style={{ color: toneColor }}>
         {value}
       </p>
 

@@ -26,3 +26,11 @@ postgres-data/
 htmlcov/
 .venv/
 venv/
+.opencode/
+screenshots/
+cctv-final.png
+settings-center.png
+software-deployment-ui.png
+*.error-backup
+backups/
+*.sql

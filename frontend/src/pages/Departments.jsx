@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-import Layout from "../components/layout/Layout";
 import api from "../services/api";
 
 function Departments() {
@@ -48,9 +47,7 @@ function Departments() {
   )];
 
   return (
-
-    <Layout>
-
+    <>
       <div className="flex justify-between items-center mb-8">
 
         <div>
@@ -371,7 +368,7 @@ function Departments() {
         })}
 
       </div>
-    </Layout>
+    </>
 
   );
 

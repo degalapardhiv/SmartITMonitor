@@ -1,17 +1,23 @@
+import { useState } from "react";
+import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 
 function Layout({ children }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="flex h-screen overflow-hidden bg-[#0a0d12] text-white">
+      <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-      {/* Top Navigation */}
-      <Navbar />
+      <div className="flex-1 flex flex-col min-w-0">
+        <Navbar onMenuClick={() => setMobileOpen(true)} />
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-6">
-        {children}
-      </main>
-
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

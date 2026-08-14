@@ -17,7 +17,14 @@ def _device_payload(device):
 
 def check_devices():
 
+    from app.settings_center_service import get_heartbeat_config
+
     while True:
+
+        config = get_heartbeat_config()
+
+        timeout_seconds = config["timeout_seconds"]
+        interval_seconds = config["check_interval_seconds"]
 
         db = SessionLocal()
 
@@ -36,7 +43,7 @@ def check_devices():
                     now - device.last_seen
                 ).total_seconds()
 
-                if diff <= 60 and device.status != "online":
+                if diff <= timeout_seconds and device.status != "online":
 
                     device.status = "online"
 
@@ -50,7 +57,7 @@ def check_devices():
                     except Exception:
                         pass
 
-                elif diff > 60 and device.status != "offline":
+                elif diff > timeout_seconds and device.status != "offline":
 
                     device.status = "offline"
 
@@ -72,7 +79,7 @@ def check_devices():
         finally:
             db.close()
 
-        time.sleep(30)
+        time.sleep(interval_seconds)
 
 
 def start_heartbeat():

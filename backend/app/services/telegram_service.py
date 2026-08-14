@@ -5,13 +5,6 @@ from app.database import SessionLocal
 from app.services.notification_service import save_notification
 
 
-from app.notification_config import (
-    TELEGRAM_ENABLED,
-    TELEGRAM_BOT_TOKEN,
-    TELEGRAM_CHAT_ID
-)
-
-
 def _truncate(text, limit=500):
 
     text = str(text)
@@ -22,21 +15,27 @@ def _truncate(text, limit=500):
     return text
 
 
-
 def send_telegram(
     message,
     alert_id=None
 ):
 
-    if not TELEGRAM_ENABLED:
-        return
+    from app.settings_center_service import get_telegram_config
 
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        return
+    config = get_telegram_config()
+
+    if not config["enabled"]:
+        return False
+
+    bot_token = config["bot_token"]
+    chat_id = config["chat_id"]
+
+    if not bot_token or not chat_id:
+        return False
 
     url = (
         f"https://api.telegram.org/bot"
-        f"{TELEGRAM_BOT_TOKEN}/sendMessage"
+        f"{bot_token}/sendMessage"
     )
 
 
@@ -45,7 +44,7 @@ def send_telegram(
         response = requests.post(
             url,
             json={
-                "chat_id": TELEGRAM_CHAT_ID,
+                "chat_id": chat_id,
                 "text": message
             }
         )
@@ -60,6 +59,8 @@ def send_telegram(
                 message
             )
 
+            return True
+
 
         else:
 
@@ -69,6 +70,8 @@ def send_telegram(
                 "FAILED",
                 _truncate(response.text)
             )
+
+            return False
 
 
     except Exception as e:
@@ -80,3 +83,5 @@ def send_telegram(
             "FAILED",
             _truncate(e)
         )
+
+        return False

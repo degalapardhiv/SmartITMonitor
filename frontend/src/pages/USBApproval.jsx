@@ -1,10 +1,26 @@
 import { useEffect, useState } from "react";
+import { FiHardDrive, FiCheck, FiX } from "react-icons/fi";
 import api from "../services/api";
+
+function formatDateTime(value) {
+  if (!value) return "N/A";
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return "N/A";
+  return date.toLocaleString();
+}
+
+function statusBadge(status) {
+  const st = String(status || "").toLowerCase();
+  if (st === "approved") return "ui-badge-success";
+  if (st === "rejected") return "ui-badge-danger";
+  return "ui-badge-warning";
+}
 
 export default function USBApproval() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deciding, setDeciding] = useState(null);
 
   const loadRequests = async () => {
     try {
@@ -35,6 +51,7 @@ export default function USBApproval() {
   }, []);
 
   const decide = async (id, decision) => {
+    setDeciding(id);
     try {
       await api.post(`/usb/requests/${id}/decision`, {
         decision,
@@ -43,129 +60,107 @@ export default function USBApproval() {
       await loadRequests();
     } catch (err) {
       console.error("USB decision failed:", err);
-      setError(
-        err?.response?.data?.detail ||
-          "Unable to process USB decision."
-      );
+      setError(err?.response?.data?.detail || "Unable to process USB decision.");
+      setTimeout(() => setError(""), 4000);
+    } finally {
+      setDeciding(null);
     }
   };
 
   return (
-    <div style={{ padding: "24px" }}>
-      <h1>USB Approval Center</h1>
-
-      <p>
-        Review USB connection requests from authorized
-        managed lab computers.
-      </p>
+    <div>
+      <div className="ui-page-header !mb-6">
+        <div>
+          <h1 className="ui-page-title">USB Approval Center</h1>
+          <p className="ui-page-subtitle">
+            Review USB connection requests from authorized managed lab computers.
+          </p>
+        </div>
+        <span className="ui-badge ui-badge-warning">
+          {requests.filter((r) => String(r.status || "").toLowerCase() === "pending").length} pending
+        </span>
+      </div>
 
       {error && (
-        <div style={{ marginBottom: "20px" }}>
+        <div className="mb-5 rounded-lg border border-red-600/40 bg-red-600/15 p-4 text-[#e6797e]">
           {error}
         </div>
       )}
 
       {loading ? (
-        <p>Loading USB requests...</p>
+        <div className="ui-loading">
+          <span className="ui-spinner" /> Loading USB requests...
+        </div>
       ) : requests.length === 0 ? (
-        <p>No USB requests.</p>
+        <div className="ui-empty">
+          <div className="ui-empty-icon"><FiHardDrive /></div>
+          <p className="ui-empty-title">No USB requests</p>
+          <p className="text-sm">Requests from lab computers will appear here.</p>
+        </div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gap: "16px",
-          }}
-        >
+        <div className="grid gap-4">
           {requests.map((request) => (
-            <div
-              key={request.id}
-              style={{
-                border: "1px solid #333",
-                borderRadius: "12px",
-                padding: "20px",
-              }}
-            >
-              <h3>
-                USB Request #{request.id}
-              </h3>
-
-              <div>
-                Device ID: {request.device_id}
+            <div key={request.id} className="ui-card p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <h3 className="text-lg font-bold text-white">
+                  USB Request #{request.id}
+                </h3>
+                <span className={`ui-badge ${statusBadge(request.status)}`}>
+                  {request.status}
+                </span>
               </div>
 
-              <div>
-                USB ID: {request.usb_id || "N/A"}
-              </div>
-
-              <div>
-                Vendor: {request.vendor || "N/A"}
-              </div>
-
-              <div>
-                Product: {request.product || "N/A"}
-              </div>
-
-              <div>
-                Description:{" "}
-                {request.description || "N/A"}
-              </div>
-
-              <div>
-                Status: <strong>{request.status}</strong>
-              </div>
-
-              <div>
-                Requested:{" "}
-                {request.requested_at
-                  ? new Date(
-                      request.requested_at
-                    ).toLocaleString()
-                  : "N/A"}
-              </div>
-
-              {request.reviewed_at && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm">
                 <div>
-                  Reviewed:{" "}
-                  {new Date(
-                    request.reviewed_at
-                  ).toLocaleString()}
+                  <span className="text-[var(--ds-text-3)]">Device:</span>{" "}
+                  <span className="font-medium text-white">{request.device_id}</span>
                 </div>
-              )}
-
-              {request.reviewed_by && (
                 <div>
-                  Reviewed by: {request.reviewed_by}
+                  <span className="text-[var(--ds-text-3)]">USB ID:</span> {request.usb_id || "N/A"}
                 </div>
-              )}
+                <div>
+                  <span className="text-[var(--ds-text-3)]">Vendor:</span> {request.vendor || "N/A"}
+                </div>
+                <div>
+                  <span className="text-[var(--ds-text-3)]">Product:</span> {request.product || "N/A"}
+                </div>
+                <div className="sm:col-span-2">
+                  <span className="text-[var(--ds-text-3)]">Description:</span>{" "}
+                  <span className="text-[var(--ds-text-2)]">{request.description || "N/A"}</span>
+                </div>
+                <div>
+                  <span className="text-[var(--ds-text-3)]">Requested:</span>{" "}
+                  {formatDateTime(request.requested_at)}
+                </div>
+                {request.reviewed_at && (
+                  <div>
+                    <span className="text-[var(--ds-text-3)]">Reviewed:</span>{" "}
+                    {formatDateTime(request.reviewed_at)}
+                  </div>
+                )}
+                {request.reviewed_by && (
+                  <div>
+                    <span className="text-[var(--ds-text-3)]">Reviewed by:</span> {request.reviewed_by}
+                  </div>
+                )}
+              </div>
 
-              {request.status === "pending" && (
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "10px",
-                    marginTop: "16px",
-                  }}
-                >
+              {String(request.status || "").toLowerCase() === "pending" && (
+                <div className="flex gap-3 mt-5 pt-4 border-t border-[var(--ds-border)]">
                   <button
-                    onClick={() =>
-                      decide(
-                        request.id,
-                        "approved"
-                      )
-                    }
+                    className="ui-btn ui-btn-primary ui-btn-sm"
+                    disabled={deciding === request.id}
+                    onClick={() => decide(request.id, "approved")}
                   >
-                    Approve
+                    <FiCheck /> Approve
                   </button>
 
                   <button
-                    onClick={() =>
-                      decide(
-                        request.id,
-                        "rejected"
-                      )
-                    }
+                    className="ui-btn ui-btn-danger ui-btn-sm"
+                    disabled={deciding === request.id}
+                    onClick={() => decide(request.id, "rejected")}
                   >
-                    Reject
+                    <FiX /> Reject
                   </button>
                 </div>
               )}

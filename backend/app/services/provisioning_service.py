@@ -156,12 +156,17 @@ def provision_api_webhook(deployment, image):
     """Push the deployment to an enterprise provisioning API.
 
     Configure SMARTIT_PROVISIONING_API_URL and optionally
-    SMARTIT_PROVISIONING_API_TOKEN. The endpoint receives the device and
+    SMARTIT_PROVISIONING_API_TOKEN (or the Settings Center
+    provisioning section). The endpoint receives the device and
     image details as JSON and is expected to perform the actual OS
     provisioning (PXE boot, imaging, etc.).
     """
 
-    url = os.getenv("SMARTIT_PROVISIONING_API_URL", "").strip()
+    from app.settings_center_service import get_provisioning_config
+
+    config = get_provisioning_config()
+
+    url = config["api_url"]
 
     if not url:
         raise ProvisioningError(
@@ -169,7 +174,7 @@ def provision_api_webhook(deployment, image):
             "SMARTIT_PROVISIONING_API_URL is not set"
         )
 
-    token = os.getenv("SMARTIT_PROVISIONING_API_TOKEN", "").strip()
+    token = config["api_token"]
 
     headers = {"Content-Type": "application/json"}
 
@@ -212,19 +217,22 @@ def provision_api_webhook(deployment, image):
 def provision_deployment(db, deployment, image):
     """Hand off a deployment to the configured provisioning system."""
 
-    if os.getenv("SMARTIT_PROVISIONING_API_URL", "").strip():
+    from app.settings_center_service import get_provisioning_config
+
+    config = get_provisioning_config()
+
+    if config["api_url"]:
         return provision_api_webhook(deployment, image)
 
     return provision_pxe_local(db, deployment, image)
 
 
 def deployment_timeout_minutes():
-    raw = os.getenv("SMARTIT_DEPLOY_TIMEOUT_MINUTES", "60")
+    from app.settings_center_service import get_provisioning_config
 
-    try:
-        return max(1, int(raw))
-    except (TypeError, ValueError):
-        return 60
+    config = get_provisioning_config()
+
+    return max(1, config["deploy_timeout_minutes"])
 
 
 def install_timeout_reached(deployment):

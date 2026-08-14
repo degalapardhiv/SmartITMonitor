@@ -8,7 +8,11 @@ import time
 
 def check_alerts():
 
+    from app.settings_center_service import get_alert_monitor_interval
+
     while True:
+
+        interval = get_alert_monitor_interval()
 
         db = SessionLocal()
 
@@ -26,7 +30,7 @@ def check_alerts():
         finally:
             db.close()
 
-        time.sleep(30)
+        time.sleep(interval)
 
 
 def start_alert_monitor():

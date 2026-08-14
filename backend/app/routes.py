@@ -129,6 +129,59 @@ def dashboard(
         .count()
     )
 
+    from .threat_model import ThreatEvent
+
+    threat_items = (
+        db.query(ThreatEvent)
+        .filter(
+            ThreatEvent.status.in_(
+                ("DETECTED", "BLOCKED", "QUARANTINED", "UNDER_REVIEW")
+            )
+        )
+        .count()
+    )
+
+    critical_threats = (
+        db.query(ThreatEvent)
+        .filter(
+            ThreatEvent.severity == "CRITICAL",
+            ThreatEvent.status.in_(
+                ("DETECTED", "BLOCKED", "QUARANTINED", "UNDER_REVIEW")
+            ),
+        )
+        .count()
+    )
+
+    quarantined_threats = (
+        db.query(ThreatEvent)
+        .filter(ThreatEvent.status == "QUARANTINED")
+        .count()
+    )
+
+    threat_devices = len(
+        set(
+            t.device_id
+            for t in db.query(ThreatEvent.device_id)
+            .filter(
+                ThreatEvent.status.in_(
+                    ("DETECTED", "BLOCKED", "QUARANTINED", "UNDER_REVIEW")
+                )
+            )
+            .all()
+        )
+    )
+
+    recent_threats = (
+        db.query(ThreatEvent)
+        .filter(
+            ThreatEvent.status.in_(
+                ("DETECTED", "BLOCKED", "QUARANTINED", "UNDER_REVIEW")
+            )
+        )
+        .order_by(ThreatEvent.detected_at.desc())
+        .limit(5)
+        .all()
+    )
 
     return {
         "total": total,
@@ -141,6 +194,26 @@ def dashboard(
         "critical_alerts": critical_alerts,
         "departments": departments,
         "labs": labs,
+        "threat_stats": {
+            "active_threats": threat_items,
+            "critical_threats": critical_threats,
+            "quarantined_threats": quarantined_threats,
+            "devices_affected": threat_devices,
+        },
+        "recent_threats": [
+            {
+                "id": t.id,
+                "hostname": t.hostname,
+                "file_name": t.file_name,
+                "category": t.category,
+                "severity": t.severity,
+                "status": t.status,
+                "detected_at": t.detected_at.isoformat()
+                if t.detected_at
+                else None,
+            }
+            for t in recent_threats
+        ],
     }
 
 # ==========================================
@@ -565,6 +638,32 @@ def agent_register(
         }
 
 
+    # Adopt a scan-discovered device with the same IP instead of creating
+    # a duplicate record (prevents dupes when a scan ran before the agent).
+    by_ip = (
+        db.query(Device)
+        .filter(
+            Device.ip == data.ip,
+            Device.agent_token.is_(None),
+        )
+        .first()
+    )
+
+    if by_ip:
+
+        by_ip.hostname = data.hostname
+        by_ip.os = data.os
+        by_ip.agent_token = secrets.token_hex(16)
+
+        db.commit()
+        db.refresh(by_ip)
+
+        return {
+            "device_id": by_ip.id,
+            "agent_token": by_ip.agent_token
+        }
+
+
     token = secrets.token_hex(16)
 
 
@@ -601,6 +700,10 @@ def agent_register(
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
 
+    from app.settings_center_service import get_ws_ping_interval
+
+    import asyncio
+
     await manager.connect(websocket)
 
     try:
@@ -611,8 +714,20 @@ async def websocket_endpoint(websocket: WebSocket):
 
         while True:
 
-            await websocket.receive_text()
+            ping_interval = get_ws_ping_interval()
 
+            try:
+
+                await asyncio.wait_for(
+                    websocket.receive_text(),
+                    timeout=ping_interval,
+                )
+
+            except asyncio.TimeoutError:
+
+                await websocket.send_json({
+                    "type": "ping"
+                })
 
     except WebSocketDisconnect:
 

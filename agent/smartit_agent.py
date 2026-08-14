@@ -27,14 +27,20 @@ AGENT_TOKEN = os.getenv(
 DEVICE_ID = os.getenv("SMARTIT_DEVICE_ID", "")
 INTERVAL = int(os.getenv("SMARTIT_INTERVAL", "5"))
 NETWORK_DISCOVERY_INTERVAL = int(
-    os.getenv("SMARTIT_NETWORK_DISCOVERY_INTERVAL", "300")
+    os.getenv("SMARTIT_NETWORK_DISCOVERY_INTERVAL", "60")
 )
 REBOOT_CMD = os.getenv(
     "SMARTIT_REBOOT_CMD",
     "",
 ).strip()
 DEPLOYMENT_POLL_INTERVAL = int(
-    os.getenv("SMARTIT_DEPLOYMENT_POLL_INTERVAL", "30")
+    os.getenv("SMARTIT_DEPLOYMENT_POLL_INTERVAL", "15")
+)
+
+ACTIVITY_INTERVAL = int(os.getenv("SMARTIT_ACTIVITY_INTERVAL", "30"))
+
+ACTIVITY_CONFIG_REFRESH_INTERVAL = int(
+    os.getenv("SMARTIT_ACTIVITY_CONFIG_INTERVAL", "300")
 )
 
 
@@ -164,6 +170,97 @@ def _deployment_loop():
         time.sleep(DEPLOYMENT_POLL_INTERVAL)
 
 
+# ---------------------------------------------------------------------------
+# Endpoint activity collection
+# ---------------------------------------------------------------------------
+
+_activity_config = {
+    "url_auditing": False,
+    "interval_seconds": ACTIVITY_INTERVAL,
+    "fetched_at": 0.0,
+}
+
+
+def _refresh_activity_config():
+    global ACTIVITY_INTERVAL
+
+    now = time.time()
+
+    if now - _activity_config["fetched_at"] < ACTIVITY_CONFIG_REFRESH_INTERVAL:
+        return _activity_config
+
+    url = f"{API_URL}/endpoint-activity/agent/config"
+
+    headers = {}
+
+    if AGENT_TOKEN:
+        headers["x-agent-token"] = AGENT_TOKEN
+
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+
+        if response.status_code == 200:
+            data = response.json()
+            _activity_config["url_auditing"] = bool(
+                data.get("url_auditing", False)
+            )
+            interval = int(data.get("interval_seconds", ACTIVITY_INTERVAL) or 60)
+            _activity_config["interval_seconds"] = max(10, interval)
+            ACTIVITY_INTERVAL = _activity_config["interval_seconds"]
+            _activity_config["fetched_at"] = now
+    except Exception as exc:
+        print(f"[SmartIT] Activity config refresh error: {exc}")
+
+    return _activity_config
+
+
+def _activity_loop():
+    from activity import collectors
+
+    while True:
+        try:
+            config = _refresh_activity_config()
+
+            collectors.set_url_auditing(config["url_auditing"])
+
+            events = collectors.collect_all()
+
+            if events:
+                url = f"{API_URL}/endpoint-activity"
+
+                headers = {}
+
+                if AGENT_TOKEN:
+                    headers["x-agent-token"] = AGENT_TOKEN
+
+                response = requests.post(
+                    url,
+                    json={"events": events},
+                    headers=headers,
+                    timeout=15,
+                )
+
+                if response.status_code >= 400:
+                    print(
+                        f"[SmartIT] Activity submit HTTP={response.status_code} "
+                        f"{response.text[:200]}"
+                    )
+        except Exception as exc:
+            print(f"[SmartIT] Activity cycle error: {exc}")
+
+        time.sleep(ACTIVITY_INTERVAL)
+
+
+def start_activity_collector():
+    thread = threading.Thread(
+        target=_activity_loop,
+        daemon=True,
+        name="endpoint_activity",
+    )
+    thread.start()
+    return thread
+
+
 def main():
     if not DEVICE_ID:
         raise SystemExit(
@@ -194,6 +291,28 @@ def main():
         print("[SmartIT] Deployment poll thread started")
     except Exception as exc:
         print(f"[SmartIT] Deployment poll unavailable: {exc}")
+
+    try:
+        activity_thread = start_activity_collector()
+        print("[SmartIT] Endpoint activity thread started")
+    except Exception as exc:
+        print(f"[SmartIT] Endpoint activity unavailable: {exc}")
+
+    try:
+        from software_deployment import start_software_deployment
+
+        start_software_deployment()
+        print("[SmartIT] Software deployment thread started")
+    except Exception as exc:
+        print(f"[SmartIT] Software deployment unavailable: {exc}")
+
+    try:
+        from web_access import start_web_access
+
+        start_web_access()
+        print("[SmartIT] Web access control thread started")
+    except Exception as exc:
+        print(f"[SmartIT] Web access control unavailable: {exc}")
 
     while True:
         send_metrics()

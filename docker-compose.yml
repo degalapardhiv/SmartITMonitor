@@ -68,6 +68,9 @@ services:
     ports:
       - "8000:8000"
 
+    volumes:
+      - software_packages:/app/software_packages
+
     healthcheck:
       test:
         [
@@ -133,6 +136,10 @@ services:
     depends_on:
       - prometheus
 
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
+
     ports:
       - "3000:3000"
 
@@ -144,3 +151,5 @@ volumes:
   postgres_data:
 
   grafana_data:
+
+  software_packages:

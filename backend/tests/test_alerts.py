@@ -2,12 +2,12 @@ import uuid
 
 
 def test_alerts_requires_auth(client):
-    response = client.get("/alerts/")
+    response = client.get("/alerts")
     assert response.status_code == 401
 
 
 def test_get_alerts_returns_list(client, auth_headers):
-    response = client.get("/alerts/", headers=auth_headers)
+    response = client.get("/alerts", headers=auth_headers)
     assert response.status_code == 200
     alerts = response.json()
     assert isinstance(alerts, list)

@@ -111,113 +111,98 @@ export default function Lab2() {
   };
 
   return (
-    <div style={{ padding: "24px" }}>
-      <h1>{departmentName} Block — {labName}</h1>
-
-      <div style={{ marginBottom: "20px" }}>
-        <strong>Real-Time Connection: </strong>
-        {connected ? "🟢 Connected" : "🔴 Disconnected"}
+    <div>
+      <div className="ui-page-header !mb-6">
+        <div>
+          <h1 className="ui-page-title">{departmentName} Block — {labName}</h1>
+          <p className="ui-page-subtitle">Live computer status for this lab.</p>
+        </div>
+        <span className={`ui-badge ${connected ? "ui-badge-success" : "ui-badge-danger"}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-[#46d369]" : "bg-[#e6797e]"}`} />
+          {connected ? "Connected" : "Disconnected"}
+        </span>
       </div>
 
       {error && (
-        <div style={{ marginBottom: "20px" }}>
+        <div className="mb-5 rounded-lg border border-red-600/40 bg-red-600/15 p-4 text-[#e6797e]">
           {error}
         </div>
       )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fit,minmax(180px,1fr))",
-          gap: "16px",
-          marginBottom: "24px",
-        }}
-      >
-        <div>
-          <strong>Total Computers</strong>
-          <div>{labDevices.length}</div>
+      <div className="grid grid-cols-3 gap-4 mb-6" style={{ maxWidth: 720 }}>
+        <div className="ui-stat">
+          <div className="ui-stat-label">Total Computers</div>
+          <div className="ui-stat-value mt-1" style={{ color: "var(--ds-text)" }}>{labDevices.length}</div>
         </div>
 
-        <div>
-          <strong>Online</strong>
-          <div>🟢 {online}</div>
+        <div className="ui-stat">
+          <div className="ui-stat-label">Online</div>
+          <div className="ui-stat-value mt-1" style={{ color: "var(--ds-success)" }}>{online}</div>
         </div>
 
-        <div>
-          <strong>Offline</strong>
-          <div>🔴 {offline}</div>
+        <div className="ui-stat">
+          <div className="ui-stat-label">Offline</div>
+          <div className="ui-stat-value mt-1" style={{ color: "var(--ds-danger)" }}>{offline}</div>
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fill,minmax(260px,1fr))",
-          gap: "16px",
-        }}
-      >
-        {labDevices.map((device) => {
-          const status =
-            String(device.status || "").toLowerCase();
-
-          const isOnline =
-            status === "online" || status === "up";
-
-          return (
-            <div
-              key={device.id}
-              style={{
-                border: "1px solid #333",
-                borderRadius: "12px",
-                padding: "18px",
-              }}
-            >
-              <h3>
-                {device.hostname || `PC-${device.id}`}
-              </h3>
-
-              <div>
-                Status:{" "}
-                {isOnline ? "🟢 ONLINE" : "🔴 OFFLINE"}
-              </div>
-
-              <div>
-                IP: {device.ip || "N/A"}
-              </div>
-
-              <hr />
-
-              <div>
-                CPU: {safeNumber(device.cpu).toFixed(1)}%
-              </div>
-
-              <div>
-                RAM: {safeNumber(device.ram).toFixed(1)}%
-              </div>
-
-              <div>
-                Disk: {safeNumber(device.disk).toFixed(1)}%
-              </div>
-
-              <div>
-                Last seen:{" "}
-                {device.last_seen
-                  ? new Date(
-                      device.last_seen
-                    ).toLocaleString()
-                  : "Never"}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {!labDevices.length && !error && (
-        <p>
+      {labDevices.length === 0 && !error ? (
+        <div className="ui-empty">
           No devices are currently assigned to CSE Block / Lab 2.
-        </p>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))",
+            gap: "16px",
+          }}
+        >
+          {labDevices.map((device) => {
+            const status = String(device.status || "").toLowerCase();
+
+            const isOnline = status === "online" || status === "up";
+
+            return (
+              <div key={device.id} className="ui-card p-5">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <h3 className="text-lg font-bold text-white">
+                    {device.hostname || `PC-${device.id}`}
+                  </h3>
+                  <span className={`ui-badge ${isOnline ? "ui-badge-success" : "ui-badge-danger"}`}>
+                    {isOnline ? "ONLINE" : "OFFLINE"}
+                  </span>
+                </div>
+
+                <div className="text-sm text-[var(--ds-text-2)]">
+                  <p><span className="text-[var(--ds-text-3)]">IP:</span> {device.ip || "N/A"}</p>
+                </div>
+
+                <div className="ui-divider" />
+
+                <div className="grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-[var(--ds-text-3)] font-semibold">CPU</p>
+                    <p className="font-semibold text-green-400">{safeNumber(device.cpu).toFixed(1)}%</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-[var(--ds-text-3)] font-semibold">RAM</p>
+                    <p className="font-semibold text-yellow-400">{safeNumber(device.ram).toFixed(1)}%</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-[var(--ds-text-3)] font-semibold">Disk</p>
+                    <p className="font-semibold text-purple-400">{safeNumber(device.disk).toFixed(1)}%</p>
+                  </div>
+                </div>
+
+                <div className="text-xs text-[var(--ds-text-3)] mt-3">
+                  Last seen:{" "}
+                  {device.last_seen ? new Date(device.last_seen).toLocaleString() : "Never"}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

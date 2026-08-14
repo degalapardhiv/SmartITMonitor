@@ -24,7 +24,7 @@ LAB = os.getenv("SMARTIT_LAB", "Cyber Security Lab")
 LOCATION = os.getenv("SMARTIT_LOCATION", "Block A")
 
 # Monitoring Interval (seconds)
-INTERVAL = int(os.getenv("SMARTIT_INTERVAL", "30"))
+INTERVAL = int(os.getenv("SMARTIT_INTERVAL", "5"))
 
 # Request Timeout (seconds)
 REQUEST_TIMEOUT = int(os.getenv("SMARTIT_REQUEST_TIMEOUT", "10"))

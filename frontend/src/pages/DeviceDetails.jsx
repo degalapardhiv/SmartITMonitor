@@ -122,8 +122,8 @@ function DeviceDetails(){
 
     return (
 
-      <div className="text-white">
-        Loading device...
+      <div className="ui-loading">
+        <span className="ui-spinner" /> Loading device...
       </div>
 
     );
@@ -139,98 +139,91 @@ function DeviceDetails(){
 
     <div>
 
-      <h1 className="text-4xl font-bold text-white mb-6">
-        Device Details
-      </h1>
+      <div className="ui-page-header !mb-6">
+
+        <div>
+
+          <h1 className="ui-page-title">
+            Device Details
+          </h1>
+
+          <p className="ui-page-subtitle">
+            {device.hostname} · {device.department || "Unassigned"}
+          </p>
+
+        </div>
+
+        <span className={`ui-badge ${isOnline ? "ui-badge-success" : "ui-badge-danger"}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-[#46d369]" : "bg-[#e6797e]"}`} />
+          {device.status || "unknown"}
+        </span>
+
+      </div>
 
 
-      <div className="bg-slate-800 rounded-xl p-6">
+      <div className="ui-card p-6 mb-6">
 
 
-        <h2 className="text-3xl text-cyan-400">
+        <h2 className="text-2xl font-bold text-white">
           {device.hostname}
         </h2>
 
-
-        <div className="grid grid-cols-2 gap-5 mt-6 text-white">
-
-
-          <p>
-            IP:
-            {" "}
-            {device.ip}
-          </p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-5 mt-6 text-sm">
 
 
-          <p>
-            Status:
-            {" "}
-            <span
-              className={
-                isOnline
-                  ? "text-green-400 font-bold"
-                  : "text-red-400 font-bold"
-              }
-            >
-              {device.status}
-            </span>
-          </p>
+          <div>
+            <div className="text-xs uppercase tracking-wider text-[var(--ds-text-3)] font-semibold mb-1">IP</div>
+            <div className="font-medium text-white">{device.ip}</div>
+          </div>
 
+          <div>
+            <div className="text-xs uppercase tracking-wider text-[var(--ds-text-3)] font-semibold mb-1">OS</div>
+            <div className="text-[var(--ds-text-2)]">{device.os || "—"}</div>
+          </div>
 
-          <p>
-            CPU:
-            {device.cpu ?? 0}%
-          </p>
+          <div>
+            <div className="text-xs uppercase tracking-wider text-[var(--ds-text-3)] font-semibold mb-1">Status</div>
+            <div className={isOnline ? "text-[var(--ds-success)] font-semibold" : "text-[var(--ds-danger)] font-semibold"}>
+              {device.status || "unknown"}
+            </div>
+          </div>
 
+          <div>
+            <div className="text-xs uppercase tracking-wider text-[var(--ds-text-3)] font-semibold mb-1">CPU</div>
+            <div className="font-semibold text-green-400">{device.cpu ?? 0}%</div>
+          </div>
 
-          <p>
-            RAM:
-            {device.ram ?? 0}%
-          </p>
+          <div>
+            <div className="text-xs uppercase tracking-wider text-[var(--ds-text-3)] font-semibold mb-1">RAM</div>
+            <div className="font-semibold text-yellow-400">{device.ram ?? 0}%</div>
+          </div>
 
+          <div>
+            <div className="text-xs uppercase tracking-wider text-[var(--ds-text-3)] font-semibold mb-1">Disk</div>
+            <div className="font-semibold text-purple-400">{device.disk ?? 0}%</div>
+          </div>
 
-          <p>
-            Disk:
-            {device.disk ?? 0}%
-          </p>
+          <div>
+            <div className="text-xs uppercase tracking-wider text-[var(--ds-text-3)] font-semibold mb-1">Last Seen</div>
+            <div className="text-[var(--ds-text-2)]">
+              {device.last_seen ? new Date(device.last_seen).toLocaleString() : "Unknown"}
+            </div>
+          </div>
 
+          <div>
+            <div className="text-xs uppercase tracking-wider text-[var(--ds-text-3)] font-semibold mb-1">Department</div>
+            <div className="text-[var(--ds-text-2)]">{device.department || "—"}</div>
+          </div>
 
-          <p>
-            OS:
-            {device.os}
-          </p>
+          <div>
+            <div className="text-xs uppercase tracking-wider text-[var(--ds-text-3)] font-semibold mb-1">Lab</div>
+            <div className="text-[var(--ds-text-2)]">{device.lab || "—"}</div>
+          </div>
 
-
-          <p>
-            Last Seen:
-            {" "}
-            {
-              device.last_seen
-              ? new Date(
-                  device.last_seen
-                ).toLocaleString()
-              : "Unknown"
-            }
-          </p>
-
-
-          <p>
-            Department:
-            {device.department}
-          </p>
-
-
-          <p>
-            Lab:
-            {device.lab}
-          </p>
-
-
-          <p>
-            Location:
-            {device.location}
-          </p>
-
+          <div>
+            <div className="text-xs uppercase tracking-wider text-[var(--ds-text-3)] font-semibold mb-1">Location</div>
+            <div className="text-[var(--ds-text-2)]">{device.location || "—"}</div>
+          </div>
 
         </div>
 

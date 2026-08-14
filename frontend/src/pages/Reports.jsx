@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
+import {
+  FiFileText,
+  FiRefreshCw,
+  FiDownload,
+} from "react-icons/fi";
 
-import Layout from "../components/layout/Layout";
 import api from "../services/api";
 
 
@@ -224,18 +228,16 @@ function Reports() {
   ].length;
 
   return (
-
-    <Layout>
-
-      <div className="flex justify-between items-center mb-8">
+    <>
+      <div className="ui-page-header !mb-6">
 
         <div>
 
-          <h1 className="text-4xl font-bold text-white">
+          <h1 className="ui-page-title">
             Reports
           </h1>
 
-          <p className="text-gray-400 mt-2">
+          <p className="ui-page-subtitle">
             Generate monitoring reports
           </p>
 
@@ -243,166 +245,102 @@ function Reports() {
 
         <button
           onClick={loadReports}
-          className="bg-cyan-600 hover:bg-cyan-700 px-5 py-2 rounded-lg"
+          className="ui-btn ui-btn-secondary ui-btn-sm"
         >
-          Refresh
+          <FiRefreshCw /> Refresh
         </button>
 
       </div>
-      <div className="grid md:grid-cols-6 gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
 
-        <div className="bg-slate-800 rounded-xl p-6">
-
-          <h2 className="text-lg font-semibold">
-            Total Devices
-          </h2>
-
-          <p className="text-4xl font-bold text-cyan-400 mt-4">
-            {totalDevices}
-          </p>
-
+        <div className="ui-stat">
+          <div className="ui-stat-label">Total Devices</div>
+          <p className="ui-stat-value mt-1" style={{ color: "var(--ds-text)" }}>{totalDevices}</p>
         </div>
 
-        <div className="bg-slate-800 rounded-xl p-6">
-
-          <h2 className="text-lg font-semibold">
-            Online
-          </h2>
-
-          <p className="text-4xl font-bold text-green-400 mt-4">
-            {onlineDevices}
-          </p>
-
+        <div className="ui-stat">
+          <div className="ui-stat-label">Online</div>
+          <p className="ui-stat-value mt-1" style={{ color: "var(--ds-success)" }}>{onlineDevices}</p>
         </div>
 
-        <div className="bg-slate-800 rounded-xl p-6">
-
-          <h2 className="text-lg font-semibold">
-            Offline
-          </h2>
-
-          <p className="text-4xl font-bold text-red-400 mt-4">
-            {offlineDevices}
-          </p>
-
+        <div className="ui-stat">
+          <div className="ui-stat-label">Offline</div>
+          <p className="ui-stat-value mt-1" style={{ color: "var(--ds-danger)" }}>{offlineDevices}</p>
         </div>
 
-        <div className="bg-slate-800 rounded-xl p-6">
-
-          <h2 className="text-lg font-semibold">
-            Alerts
-          </h2>
-
-          <p className="text-4xl font-bold text-yellow-400 mt-4">
-            {alertDevices}
-          </p>
-
+        <div className="ui-stat">
+          <div className="ui-stat-label">Alerts</div>
+          <p className="ui-stat-value mt-1" style={{ color: "var(--ds-warning)" }}>{alertDevices}</p>
         </div>
 
-        <div className="bg-slate-800 rounded-xl p-6">
-
-          <h2 className="text-lg font-semibold">
-            Departments
-          </h2>
-
-          <p className="text-4xl font-bold text-purple-400 mt-4">
-            {departments}
-          </p>
-
+        <div className="ui-stat">
+          <div className="ui-stat-label">Departments</div>
+          <p className="ui-stat-value mt-1" style={{ color: "var(--ds-text-2)" }}>{departments}</p>
         </div>
 
-
-        <div className="bg-slate-800 rounded-xl p-6">
-
-          <h2 className="text-lg font-semibold">
-            Labs
-          </h2>
-
-          <p className="text-4xl font-bold text-blue-400 mt-4">
-            {labs}
-          </p>
-
+        <div className="ui-stat">
+          <div className="ui-stat-label">Labs</div>
+          <p className="ui-stat-value mt-1" style={{ color: "var(--ds-text-2)" }}>{labs}</p>
         </div>
-
 
       </div>
 
 
-      <div className="bg-slate-800 rounded-xl p-6 mb-8">
+      <div className="ui-card p-6 mb-6">
 
-        <h2 className="text-2xl font-bold mb-6">
+        <h2 className="ui-card-title mb-4">
           Export Reports
         </h2>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-4">
 
           <button
             onClick={() => exportCSV(devices)}
-            className="bg-green-600 hover:bg-green-700 p-5 rounded-xl font-bold"
+            className="ui-btn ui-btn-secondary !py-4"
           >
-            📄 Export CSV
+            <FiFileText /> Export CSV
           </button>
 
           <button
             onClick={() => exportExcel(devices)}
-            className="bg-blue-600 hover:bg-blue-700 p-5 rounded-xl font-bold"
+            className="ui-btn ui-btn-secondary !py-4"
           >
-            📊 Export Excel
+            <FiDownload /> Export Excel
           </button>
 
           <button
             onClick={() => exportPDF(devices)}
-            className="bg-red-600 hover:bg-red-700 p-5 rounded-xl font-bold"
+            className="ui-btn ui-btn-danger !py-4"
           >
-            📑 Export PDF
+            <FiFileText /> Export PDF
           </button>
 
         </div>
 
       </div>
-      <div className="bg-slate-800 rounded-xl shadow-xl overflow-x-auto">
+      <div className="ui-table-wrap shadow-xl">
 
-        <div className="p-6 border-b border-slate-700">
+        <div className="p-6 border-b border-[var(--ds-border)]">
 
-          <h2 className="text-2xl font-bold">
+          <h2 className="ui-card-title">
             Device Summary Report
           </h2>
 
         </div>
 
-        <table className="w-full">
+        <table className="ui-table">
 
-          <thead className="bg-slate-900">
+          <thead>
 
             <tr>
 
-              <th className="text-left p-4">
-                Hostname
-              </th>
-
-              <th className="text-left p-4">
-                Department
-              </th>
-
-              <th className="text-left p-4">
-                Lab
-              </th>
-
-              <th className="text-center p-4">
-                CPU
-              </th>
-
-              <th className="text-center p-4">
-                RAM
-              </th>
-
-              <th className="text-center p-4">
-                Disk
-              </th>
-
-              <th className="text-center p-4">
-                Status
-              </th>
+              <th>Hostname</th>
+              <th>Department</th>
+              <th>Lab</th>
+              <th>CPU</th>
+              <th>RAM</th>
+              <th>Disk</th>
+              <th>Status</th>
 
             </tr>
 
@@ -416,9 +354,9 @@ function Reports() {
 
                 <td
                   colSpan="7"
-                  className="text-center py-8 text-gray-400"
+                  className="text-center py-10 text-[var(--ds-text-3)]"
                 >
-                  Loading report...
+                  <span className="ui-spinner" /> Loading report...
                 </td>
 
               </tr>
@@ -429,7 +367,7 @@ function Reports() {
 
                 <td
                   colSpan="7"
-                  className="text-center py-8 text-gray-400"
+                  className="text-center py-10 text-[var(--ds-text-3)]"
                 >
                   No devices available.
                 </td>
@@ -440,43 +378,30 @@ function Reports() {
 
               devices.map((device) => (
 
-                <tr
-                  key={device.id}
-                  className="border-t border-slate-700 hover:bg-slate-700 transition"
-                >
+                <tr key={device.id}>
 
-                  <td className="p-4 font-semibold text-cyan-400">
+                  <td className="font-semibold text-white">
                     {device.hostname}
                   </td>
 
-                  <td className="p-4">
-                    {device.department}
-                  </td>
+                  <td>{device.department}</td>
 
-                  <td className="p-4">
-                    {device.lab}
-                  </td>
+                  <td>{device.lab}</td>
 
-                  <td className="text-center p-4">
-                    {(device.cpu ?? 0).toFixed(1)}%
-                  </td>
+                  <td>{(device.cpu ?? 0).toFixed(1)}%</td>
 
-                  <td className="text-center p-4">
-                    {(device.ram ?? 0).toFixed(1)}%
-                  </td>
+                  <td>{(device.ram ?? 0).toFixed(1)}%</td>
 
-                  <td className="text-center p-4">
-                    {(device.disk ?? 0).toFixed(1)}%
-                  </td>
+                  <td>{(device.disk ?? 0).toFixed(1)}%</td>
 
-                  <td className="text-center p-4">
+                  <td>
 
                     <span
-                      className={
+                      className={`ui-badge ${
                         String(device.status || "").toLowerCase() === "online"
-                          ? "bg-green-600 px-3 py-1 rounded-full text-sm"
-                          : "bg-red-600 px-3 py-1 rounded-full text-sm"
-                      }
+                          ? "ui-badge-success"
+                          : "ui-badge-danger"
+                      }`}
                     >
                       {device.status}
                     </span>
@@ -498,9 +423,9 @@ function Reports() {
 
         {/* Department Report */}
 
-        <div className="bg-slate-800 rounded-xl p-6">
+        <div className="ui-card p-6">
 
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="ui-card-title mb-5">
             Department Report
           </h2>
 
@@ -560,9 +485,9 @@ function Reports() {
 
         {/* Alert Summary */}
 
-        <div className="bg-slate-800 rounded-xl p-6">
+        <div className="ui-card p-6">
 
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="ui-card-title mb-5">
             Alert Summary
           </h2>
 
@@ -631,9 +556,9 @@ function Reports() {
 
         {/* Recent Activity */}
 
-        <div className="bg-slate-800 rounded-xl p-6">
+        <div className="ui-card p-6">
 
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="ui-card-title mb-5">
             Recent Activity
           </h2>
 
@@ -686,9 +611,9 @@ function Reports() {
 
         {/* System Health */}
 
-        <div className="bg-slate-800 rounded-xl p-6">
+        <div className="ui-card p-6">
 
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="ui-card-title mb-5">
             System Health
           </h2>
 
@@ -783,7 +708,7 @@ function Reports() {
         </div>
 
       </div>
-    </Layout>
+    </>
 
   );
 

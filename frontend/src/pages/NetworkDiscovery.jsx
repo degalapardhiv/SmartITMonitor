@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FiRadio, FiRefreshCw } from "react-icons/fi";
 import api from "../services/api";
 
 export default function NetworkDiscovery() {
@@ -17,11 +18,10 @@ export default function NetworkDiscovery() {
     try {
       setError("");
 
-      const [devicesResponse, summaryResponse] =
-        await Promise.all([
-          api.get("/network/devices"),
-          api.get("/network/summary"),
-        ]);
+      const [devicesResponse, summaryResponse] = await Promise.all([
+        api.get("/network/devices"),
+        api.get("/network/summary"),
+      ]);
 
       setDevices(devicesResponse.data);
       setSummary(summaryResponse.data);
@@ -54,52 +54,58 @@ export default function NetworkDiscovery() {
     return () => clearInterval(timer);
   }, []);
 
+  const metrics = [
+    { title: "Discovered", value: summary.total },
+    { title: "Online", value: summary.online },
+    { title: "Managed", value: summary.managed },
+    { title: "Unknown", value: summary.unknown },
+  ];
+
   return (
-    <div style={{ padding: "24px" }}>
-      <div style={{ marginBottom: "24px" }}>
-        <h1>Network Discovery</h1>
-        <p>
-          Devices discovered on authorized networks.
-        </p>
+    <div>
+      <div className="ui-page-header !mb-6">
+        <div>
+          <h1 className="ui-page-title">Network Discovery</h1>
+          <p className="ui-page-subtitle">Devices discovered on authorized networks.</p>
+        </div>
+        <button className="ui-btn ui-btn-secondary ui-btn-sm" onClick={load}>
+          <FiRefreshCw /> Refresh
+        </button>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fit,minmax(180px,1fr))",
-          gap: "16px",
-          marginBottom: "24px",
-        }}
-      >
-        <Metric title="Discovered" value={summary.total} />
-        <Metric title="Online" value={summary.online} />
-        <Metric title="Managed" value={summary.managed} />
-        <Metric title="Unknown" value={summary.unknown} />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {metrics.map((m) => (
+          <div className="ui-stat" key={m.title}>
+            <div className="ui-stat-label">{m.title}</div>
+            <div className="ui-stat-value mt-1" style={{ color: "var(--ds-text)" }}>
+              {m.value}
+            </div>
+          </div>
+        ))}
       </div>
 
       {error && (
-        <div
-          style={{
-            padding: "12px",
-            marginBottom: "16px",
-            borderRadius: "8px",
-            background: "rgba(239,68,68,.12)",
-          }}
-        >
+        <div className="mb-5 rounded-lg border border-red-600/40 bg-red-600/15 p-4 text-[#e6797e]">
           {error}
         </div>
       )}
 
-      <div className="card">
-        <h2>Discovered Devices</h2>
+      <div className="ui-table-wrap">
+        <div className="p-6 border-b border-[var(--ds-border)]">
+          <h2 className="ui-card-title">Discovered Devices</h2>
+        </div>
 
         {loading ? (
-          <p>Loading network devices...</p>
+          <div className="ui-loading">
+            <span className="ui-spinner" /> Loading network devices...
+          </div>
         ) : devices.length === 0 ? (
-          <p>No network devices discovered yet.</p>
+          <div className="ui-empty">
+            <div className="ui-empty-icon"><FiRadio /></div>
+            <p className="ui-empty-title">No network devices discovered yet.</p>
+          </div>
         ) : (
-          <table>
+          <table className="ui-table">
             <thead>
               <tr>
                 <th>Status</th>
@@ -118,31 +124,28 @@ export default function NetworkDiscovery() {
                 <tr key={device.id}>
                   <td>
                     <span
-                      className={
-                        device.status === "online"
-                          ? "status-online"
-                          : "status-offline"
-                      }
+                      className={`ui-badge ${device.status === "online" ? "ui-badge-success" : "ui-badge-danger"}`}
                     >
-                      ● {device.status}
+                      {device.status}
                     </span>
                   </td>
 
-                  <td>{device.ip || "—"}</td>
-                  <td>{device.mac || "—"}</td>
+                  <td className="font-medium text-white">{device.ip || "—"}</td>
+                  <td className="font-mono text-[var(--ds-text-2)]">{device.mac || "—"}</td>
                   <td>{device.hostname || "Unknown"}</td>
-                  <td>{device.vendor || "Unknown"}</td>
+                  <td className="text-[var(--ds-text-2)]">{device.vendor || "Unknown"}</td>
                   <td>{device.network || "—"}</td>
                   <td>
-                    {device.managed ? "Managed" : "Unknown"}
+                    <span className={`ui-badge ${device.managed ? "ui-badge-success" : "ui-badge-warning"}`}>
+                      {device.managed ? "Managed" : "Unknown"}
+                    </span>
                   </td>
 
                   <td>
                     {!device.managed && (
                       <button
-                        onClick={() =>
-                          markManaged(device.id)
-                        }
+                        className="ui-btn ui-btn-secondary ui-btn-sm"
+                        onClick={() => markManaged(device.id)}
                       >
                         Mark Managed
                       </button>
@@ -153,39 +156,6 @@ export default function NetworkDiscovery() {
             </tbody>
           </table>
         )}
-      </div>
-    </div>
-  );
-}
-
-function Metric({ title, value }) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: "20px",
-        border: "1px solid var(--border)",
-        borderRadius: "12px",
-        background: "var(--surface)",
-      }}
-    >
-      <div
-        style={{
-          color: "var(--muted)",
-          fontSize: "13px",
-          marginBottom: "8px",
-        }}
-      >
-        {title}
-      </div>
-
-      <div
-        style={{
-          fontSize: "30px",
-          fontWeight: 800,
-        }}
-      >
-        {value}
       </div>
     </div>
   );

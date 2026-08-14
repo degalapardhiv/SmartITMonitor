@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FiLock } from "react-icons/fi";
 import api from "../services/api";
 
 const POLICIES = [
@@ -32,9 +33,7 @@ export default function ExamMode() {
       const response = await api.get("/exam-mode");
 
       setEnabled(Boolean(response.data?.enabled));
-      setUsbPolicy(
-        response.data?.usb_policy || "approval_required"
-      );
+      setUsbPolicy(response.data?.usb_policy || "approval_required");
 
       setError("");
     } catch (err) {
@@ -68,17 +67,12 @@ export default function ExamMode() {
       });
 
       setEnabled(Boolean(response.data?.enabled));
-      setUsbPolicy(
-        response.data?.usb_policy || "approval_required"
-      );
+      setUsbPolicy(response.data?.usb_policy || "approval_required");
 
       setMessage("Exam Mode settings saved.");
     } catch (err) {
       console.error("Exam Mode save failed:", err);
-      setError(
-        err?.response?.data?.detail ||
-          "Unable to save Exam Mode settings."
-      );
+      setError(err?.response?.data?.detail || "Unable to save Exam Mode settings.");
     } finally {
       setSaving(false);
     }
@@ -86,122 +80,101 @@ export default function ExamMode() {
 
   if (loading) {
     return (
-      <div style={{ padding: "24px" }}>
-        <h1>Exam Mode</h1>
-        <p>Loading settings...</p>
+      <div>
+        <div className="ui-page-header !mb-6">
+          <div>
+            <h1 className="ui-page-title">Exam Mode</h1>
+            <p className="ui-page-subtitle">Security policy for lab computers during examinations.</p>
+          </div>
+        </div>
+        <div className="ui-loading">
+          <span className="ui-spinner" /> Loading settings...
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: "24px", maxWidth: "900px" }}>
-      <h1>Exam Mode</h1>
-
-      <p>
-        Configure the security policy for authorized managed
-        lab computers during examinations.
-      </p>
+    <div style={{ maxWidth: "900px" }}>
+      <div className="ui-page-header !mb-6">
+        <div>
+          <h1 className="ui-page-title">Exam Mode</h1>
+          <p className="ui-page-subtitle">
+            Configure the security policy for authorized managed lab computers during examinations.
+          </p>
+        </div>
+      </div>
 
       {message && (
-        <div style={{ marginBottom: "16px" }}>
+        <div className="mb-5 rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-[#46d369]">
           {message}
         </div>
       )}
 
       {error && (
-        <div style={{ marginBottom: "16px" }}>
+        <div className="mb-5 rounded-lg border border-red-600/40 bg-red-600/15 p-4 text-[#e6797e]">
           {error}
         </div>
       )}
 
-      <section
-        style={{
-          border: "1px solid #333",
-          borderRadius: "12px",
-          padding: "20px",
-          marginBottom: "20px",
-        }}
-      >
-        <h2>Exam Mode Status</h2>
+      <div className="ui-card p-6 mb-5">
+        <h2 className="ui-card-title mb-4">Exam Mode Status</h2>
 
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            cursor: "pointer",
-          }}
-        >
+        <label className="flex items-center gap-3 cursor-pointer select-none">
           <input
             type="checkbox"
             checked={enabled}
-            onChange={(event) =>
-              setEnabled(event.target.checked)
-            }
+            onChange={(event) => setEnabled(event.target.checked)}
+            className="w-4 h-4 accent-[var(--ds-accent)]"
           />
-
-          <strong>
-            {enabled
-              ? "Exam Mode Enabled"
-              : "Exam Mode Disabled"}
+          <strong className="text-white">
+            {enabled ? "Exam Mode Enabled" : "Exam Mode Disabled"}
           </strong>
+          <span className={`ui-badge ${enabled ? "ui-badge-success" : "ui-badge-neutral"}`}>
+            {enabled ? "Active" : "Inactive"}
+          </span>
         </label>
-      </section>
+      </div>
 
-      <section
-        style={{
-          border: "1px solid #333",
-          borderRadius: "12px",
-          padding: "20px",
-          marginBottom: "20px",
-        }}
-      >
-        <h2>USB Policy</h2>
+      <div className="ui-card p-6 mb-5">
+        <h2 className="ui-card-title mb-4">USB Policy</h2>
 
-        <div
-          style={{
-            display: "grid",
-            gap: "12px",
-          }}
-        >
+        <div className="grid gap-3">
           {POLICIES.map((policy) => (
             <label
               key={policy.value}
-              style={{
-                display: "flex",
-                gap: "12px",
-                padding: "14px",
-                border: "1px solid #444",
-                borderRadius: "8px",
-                cursor: "pointer",
-              }}
+              className={`flex gap-3 items-start p-4 rounded-lg border cursor-pointer transition ${
+                usbPolicy === policy.value
+                  ? "border-[var(--ds-border-strong)] bg-[var(--ds-surface-3)]"
+                  : "border-[var(--ds-border)] bg-transparent hover:bg-white/[0.03]"
+              }`}
             >
               <input
                 type="radio"
                 name="usb-policy"
                 value={policy.value}
                 checked={usbPolicy === policy.value}
-                onChange={(event) =>
-                  setUsbPolicy(event.target.value)
-                }
+                onChange={(event) => setUsbPolicy(event.target.value)}
+                className="mt-1 accent-[var(--ds-accent)]"
               />
 
               <span>
-                <strong>{policy.label}</strong>
+                <strong className="text-white">{policy.label}</strong>
                 <br />
-                <small>{policy.description}</small>
+                <small className="text-[var(--ds-text-3)]">{policy.description}</small>
               </span>
             </label>
           ))}
         </div>
-      </section>
+      </div>
 
       <button
         type="button"
+        className="ui-btn ui-btn-primary"
         disabled={saving}
         onClick={saveSettings}
       >
-        {saving ? "Saving..." : "Save Policy"}
+        <FiLock /> {saving ? "Saving..." : "Save Policy"}
       </button>
     </div>
   );

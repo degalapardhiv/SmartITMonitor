@@ -189,10 +189,10 @@ def create_camera_alert(db: Session, camera):
     return alert
 
 
-def check_camera(db: Session, camera, force=False):
+def check_camera(db: Session, camera, force=False, probe_timeout=3):
     was_online = camera.status == "online"
 
-    online = probe_camera(camera)
+    online = probe_camera(camera, timeout=probe_timeout)
 
     if online:
 
@@ -216,7 +216,14 @@ def check_camera(db: Session, camera, force=False):
 
 
 def monitor_cameras(interval=DEFAULT_CHECK_INTERVAL):
+    from app.settings_center_service import get_camera_config
+
     while True:
+
+        config = get_camera_config()
+
+        interval = config["check_interval_seconds"]
+        probe_timeout = config["probe_timeout_seconds"]
 
         db = SessionLocal()
 
@@ -227,7 +234,11 @@ def monitor_cameras(interval=DEFAULT_CHECK_INTERVAL):
             for camera in cameras:
 
                 try:
-                    check_camera(db, camera)
+                    check_camera(
+                        db,
+                        camera,
+                        probe_timeout=probe_timeout,
+                    )
                 except Exception:
                     db.rollback()
 

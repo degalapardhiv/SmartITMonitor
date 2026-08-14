@@ -22,6 +22,7 @@ class Device(Base):
     lab = Column(String)
     location = Column(String)
     os = Column(String)
+    architecture = Column(String)
 
     agent_token = Column(String, unique=True, index=True)
 

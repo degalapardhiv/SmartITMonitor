@@ -1,113 +1,120 @@
 @import "tailwindcss";
 
 @theme {
-  /* ---- Slate → Netflix near-black / neutral grays ---- */
-  --color-slate-950: #0a0a0a;
-  --color-slate-900: #141414;
-  --color-slate-800: #181818;
-  --color-slate-700: #2a2a2a;
-  --color-slate-600: #333333;
-  --color-slate-500: #404040;
-  --color-slate-400: #555555;
-  --color-slate-300: #6b6b6b;
-  --color-slate-200: #8a8a8a;
-  --color-slate-100: #a3a3a3;
-  --color-slate-50: #c0c0c0;
+  /* ---- Slate → enterprise charcoal (subtle blue undertone) ---- */
+  --color-slate-950: #0a0d12;
+  --color-slate-900: #0f1319;
+  --color-slate-800: #141922;
+  --color-slate-700: #1d2430;
+  --color-slate-600: #2a3342;
+  --color-slate-500: #3d4857;
+  --color-slate-400: #5b6b80;
+  --color-slate-300: #7d8ea6;
+  --color-slate-200: #a5b2c4;
+  --color-slate-100: #ccd5e1;
+  --color-slate-50: #e9edf3;
 
-  /* ---- Cyan (previous primary accent) → Netflix red ---- */
-  --color-cyan-950: #120303;
-  --color-cyan-900: #1a0507;
-  --color-cyan-800: #3d070b;
-  --color-cyan-700: #a0050e;
-  --color-cyan-600: #c40812;
-  --color-cyan-500: #e50914;
-  --color-cyan-400: #e50914;
-  --color-cyan-300: #f6121d;
-  --color-cyan-200: #ff5c5c;
-  --color-cyan-100: #ffb3b3;
+  /* ---- Cyan → security red (accents) ---- */
+  --color-cyan-950: #18090a;
+  --color-cyan-900: #260c0e;
+  --color-cyan-800: #3f1114;
+  --color-cyan-700: #7a1a1f;
+  --color-cyan-600: #a4232a;
+  --color-cyan-500: #c22a32;
+  --color-cyan-400: #d6454d;
+  --color-cyan-300: #e6797e;
+  --color-cyan-200: #f2adb1;
+  --color-cyan-100: #fadfe0;
 
-  /* ---- Red → Netflix brand red ---- */
-  --color-red-950: #140304;
-  --color-red-900: #1a0507;
-  --color-red-800: #3d070b;
-  --color-red-700: #b00610;
-  --color-red-600: #e50914;
-  --color-red-500: #e50914;
-  --color-red-400: #f6121d;
-  --color-red-300: #ff5c5c;
-  --color-red-200: #ffb3b3;
-  --color-red-100: #ffe0e0;
+  /* ---- Red → security red ---- */
+  --color-red-950: #18090a;
+  --color-red-900: #260c0e;
+  --color-red-800: #3f1114;
+  --color-red-700: #7a1a1f;
+  --color-red-600: #a4232a;
+  --color-red-500: #c22a32;
+  --color-red-400: #d6454d;
+  --color-red-300: #e6797e;
+  --color-red-200: #f2adb1;
+  --color-red-100: #fadfe0;
 
-  /* ---- Green → Netflix success green ---- */
-  --color-green-950: #06130a;
-  --color-green-900: #0a1f10;
-  --color-green-800: #14331c;
-  --color-green-700: #3aa75a;
-  --color-green-600: #46d369;
-  --color-green-500: #46d369;
+  /* ---- Green → operational success ---- */
+  --color-green-950: #08130c;
+  --color-green-900: #0d2115;
+  --color-green-800: #12351f;
+  --color-green-700: #1f6b3d;
+  --color-green-600: #2b9e5a;
+  --color-green-500: #35b96b;
   --color-green-400: #46d369;
-  --color-green-300: #7cf5a9;
-  --color-green-200: #b6ffcf;
-  --color-green-100: #d9ffea;
+  --color-green-300: #74e69a;
+  --color-green-200: #b0f2c8;
+  --color-green-100: #dffbee;
 
-  /* ---- Yellow → Netflix amber ---- */
-  --color-yellow-950: #1a1103;
-  --color-yellow-900: #2a1c05;
-  --color-yellow-800: #4a3107;
-  --color-yellow-700: #b06e0d;
-  --color-yellow-600: #d68a13;
-  --color-yellow-500: #f5a623;
-  --color-yellow-400: #f5a623;
-  --color-yellow-300: #ffc04d;
-  --color-yellow-200: #ffd98a;
+  /* ---- Yellow → operational warning ---- */
+  --color-yellow-950: #1a1406;
+  --color-yellow-900: #2a2008;
+  --color-yellow-800: #473606;
+  --color-yellow-700: #8a6a0d;
+  --color-yellow-600: #b88713;
+  --color-yellow-500: #d9a521;
+  --color-yellow-400: #e3b341;
+  --color-yellow-300: #f0cf7a;
+  --color-yellow-200: #f6e2ad;
+  --color-yellow-100: #fbf3d9;
 
-  /* ---- Orange → Netflix amber ---- */
-  --color-orange-950: #1a1103;
-  --color-orange-900: #2a1c05;
-  --color-orange-800: #4a3107;
-  --color-orange-700: #b06e0d;
-  --color-orange-600: #d68a13;
-  --color-orange-500: #f5a623;
-  --color-orange-400: #f5a623;
-  --color-orange-300: #ffc04d;
+  /* ---- Orange → operational amber ---- */
+  --color-orange-950: #1a1406;
+  --color-orange-900: #2a2008;
+  --color-orange-800: #473606;
+  --color-orange-700: #8a6a0d;
+  --color-orange-600: #b88713;
+  --color-orange-500: #d9a521;
+  --color-orange-400: #e3b341;
+  --color-orange-300: #f0cf7a;
 
-  /* ---- Purple (disk values) → white / Netflix gray ---- */
+  /* ---- Purple (disk values) → neutral grays ---- */
   --color-purple-400: #ffffff;
-  --color-purple-500: #c0c0c0;
-  --color-purple-600: #a3a3a3;
-  --color-purple-700: #8a8a8a;
+  --color-purple-500: #c2cad6;
+  --color-purple-600: #a5b2c4;
+  --color-purple-700: #8a98ac;
 
-  /* ---- Blue (progress bars) → Netflix red ---- */
-  --color-blue-500: #e50914;
-  --color-blue-600: #e50914;
-  --color-blue-700: #b00610;
-  --color-blue-400: #f6121d;
-  --color-blue-300: #ff5c5c;
-  --color-blue-800: #3d070b;
+  /* ---- Blue (progress bars) → security red ---- */
+  --color-blue-500: #c22a32;
+  --color-blue-600: #a4232a;
+  --color-blue-700: #7a1a1f;
+  --color-blue-400: #d6454d;
+  --color-blue-300: #e6797e;
+  --color-blue-800: #3f1114;
 
   /* ---- Indigo → muted red ---- */
-  --color-indigo-600: #e50914;
-  --color-indigo-700: #b00610;
-  --color-indigo-500: #e50914;
-  --color-indigo-400: #f6121d;
+  --color-indigo-600: #a4232a;
+  --color-indigo-700: #7a1a1f;
+  --color-indigo-500: #c22a32;
+  --color-indigo-400: #d6454d;
 
-  /* ---- Gray → Netflix grays ---- */
-  --color-gray-600: #333333;
-  --color-gray-500: #404040;
-  --color-gray-400: #a3a3a3;
-  --color-gray-300: #d4d4d4;
-  --color-gray-200: #e6e6e6;
-  --color-gray-100: #f2f2f2;
-  --color-gray-700: #2a2a2a;
-  --color-gray-800: #181818;
-  --color-gray-900: #141414;
-  --color-gray-950: #0a0a0a;
+  /* ---- Gray → charcoal ---- */
+  --color-gray-600: #2a3342;
+  --color-gray-500: #3d4857;
+  --color-gray-400: #a5b2c4;
+  --color-gray-300: #ccd5e1;
+  --color-gray-200: #e2e8f0;
+  --color-gray-100: #eef2f7;
+  --color-gray-700: #1d2430;
+  --color-gray-800: #141922;
+  --color-gray-900: #0f1319;
+  --color-gray-950: #0a0d12;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
 }
 
 body {
   margin: 0;
-  background: #0a0a0a;
-  color: white;
+  background: #0a0d12;
+  color: #e9edf3;
   font-family:
     Inter,
     ui-sans-serif,
@@ -116,24 +123,47 @@ body {
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f1319;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a3342;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3d4857;
 }
 
 .offline-alert {
-  background: rgba(229, 9, 20, 0.12);
-  color: #ff8a90;
-  border: 1px solid #e50914;
+  background: rgba(162, 35, 42, 0.14);
+  color: #e6797e;
+  border: 1px solid rgba(194, 42, 50, 0.5);
   padding: 15px;
   margin: 15px;
   border-radius: 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .offline-alert button {
   background: transparent;
-  color: #ff8a90;
+  color: #e6797e;
   border: none;
   font-size: 18px;
   cursor: pointer;
@@ -142,7 +172,7 @@ body {
 .device-table-container {
   margin: 20px;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
   border-radius: 12px;
   overflow-x: auto;
 }
@@ -155,16 +185,16 @@ body {
 .device-table th {
   text-align: left;
   padding: 12px;
-  border-bottom: 1px solid #333333;
+  border-bottom: 1px solid #1d2430;
 }
 
 .device-table td {
   padding: 12px;
-  border-bottom: 1px solid #222222;
+  border-bottom: 1px solid #141922;
 }
 
 .status-online {
-  background: rgba(70, 211, 105, 0.15);
+  background: rgba(70, 211, 105, 0.12);
   color: #46d369;
   padding: 5px 12px;
   border-radius: 20px;
@@ -172,32 +202,32 @@ body {
 }
 
 .status-offline {
-  background: rgba(229, 9, 20, 0.15);
-  color: #e50914;
+  background: rgba(194, 42, 50, 0.12);
+  color: #e6797e;
   padding: 5px 12px;
   border-radius: 20px;
   font-size: 13px;
 }
 
 .device-table tr:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .alert-popup {
-  border-left: 5px solid #e50914;
+  border-left: 5px solid #c22a32;
   animation: alertPulse 1.5s infinite;
 }
 
 .alert-high {
-  background: rgba(229, 9, 20, 0.9);
+  background: rgba(194, 42, 50, 0.85);
 }
 
 .alert-medium {
-  background: rgba(245, 166, 35, 0.9);
+  background: rgba(217, 165, 33, 0.85);
 }
 
 .alert-low {
-  background: rgba(70, 211, 105, 0.9);
+  background: rgba(70, 211, 105, 0.85);
 }
 
 @keyframes alertPulse {

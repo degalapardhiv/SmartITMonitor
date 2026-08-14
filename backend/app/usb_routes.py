@@ -76,9 +76,14 @@ def create_usb_event(
         else "approval_required"
     )
 
-    if exam_enabled and usb_policy == "allow":
+    if not exam_enabled:
+        from .settings_center_service import get_usb_default_policy
+
+        usb_policy = get_usb_default_policy()
+
+    if usb_policy == "allow":
         request_status = "approved"
-    elif exam_enabled and usb_policy == "block":
+    elif usb_policy == "block":
         request_status = "rejected"
     else:
         request_status = "pending"
@@ -152,6 +157,12 @@ def create_usb_event(
                 f"{device['hostname']}: "
                 f"{event.description or event.usb_id or 'Unknown USB'}"
             ),
+        )
+
+        _record_usb_rejected(
+            db,
+            device,
+            "USB rejected by Exam Mode policy",
         )
 
     return request
@@ -275,4 +286,18 @@ def decide_usb_request(
         ),
     )
 
+    if value == "rejected":
+        _record_usb_rejected(
+            db,
+            {"id": request["device_id"], "hostname": request["hostname"] or ""},
+            "USB request rejected by administrator",
+        )
+
     return updated
+
+
+def _record_usb_rejected(db, device, reason):
+    """Record a USB rejection in the endpoint activity stream (best effort)."""
+    from .services.endpoint_activity_service import add_usb_rejected_event
+
+    add_usb_rejected_event(db, device, reason)

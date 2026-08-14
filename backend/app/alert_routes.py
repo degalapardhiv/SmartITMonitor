@@ -25,7 +25,7 @@ def get_db():
 
 
 
-@router.get("/")
+@router.get("")
 def get_alerts(
     page: int = 1,
     limit: int = 50,

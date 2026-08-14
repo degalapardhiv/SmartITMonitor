@@ -16,6 +16,8 @@ from . import email_history_model
 from . import notification_history_model
 from . import department_model
 from . import monitor_settings_model
+from . import settings_audit_model
+from . import software_deployment_model
 from .database import Base, engine
 
 # Database Models
@@ -28,6 +30,7 @@ from .exam_mode_model import ExamModeSetting, USBRequest
 from .camera_model import Camera
 from .os_image_model import OSImage
 from .deployment_model import Deployment, DeploymentAudit
+from .endpoint_activity_model import EndpointActivity, ActivityAudit
 
 # API Routers
 from .routes import router
@@ -40,6 +43,11 @@ from .department_routes import router as department_router
 from .camera_routes import router as camera_router
 from .os_image_routes import router as os_image_router
 from .deployment_routes import router as deployment_router
+from .endpoint_activity_routes import router as endpoint_activity_router
+from .settings_center_routes import router as settings_center_router
+from .software_deployment_routes import router as software_deployment_router
+from .threat_routes import router as threat_router
+from .web_access_routes import router as web_access_router
 
 # Create all database tables
 Base.metadata.create_all(bind=engine)
@@ -107,6 +115,11 @@ app.include_router(department_router)
 app.include_router(camera_router)
 app.include_router(os_image_router)
 app.include_router(deployment_router)
+app.include_router(endpoint_activity_router)
+app.include_router(settings_center_router)
+app.include_router(software_deployment_router)
+app.include_router(threat_router)
+app.include_router(web_access_router)
 
 # ---------------------------------------
 # Root
@@ -174,6 +187,36 @@ def startup_deployment_monitor():
     from .services.deployment_service import start_deployment_monitor
 
     start_deployment_monitor()
+
+
+@app.on_event("startup")
+def startup_endpoint_activity_cleanup():
+    from .services.endpoint_activity_service import start_endpoint_activity_cleanup
+
+    start_endpoint_activity_cleanup()
+
+
+@app.on_event("startup")
+def startup_settings_retention_cleanup():
+    from .settings_center_service import start_settings_retention_cleanup
+
+    start_settings_retention_cleanup()
+
+
+@app.on_event("startup")
+def startup_threat_cleanup():
+    from .threat_service import start_threat_cleanup
+
+    start_threat_cleanup()
+
+
+@app.on_event("startup")
+def startup_software_package_dir():
+    import os
+
+    from .software_deployment_service import PACKAGE_DIR
+
+    os.makedirs(PACKAGE_DIR, exist_ok=True)
 
 
 @app.on_event("startup")

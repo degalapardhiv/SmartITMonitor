@@ -1,5 +1,6 @@
 import time
 import socket
+import platform
 import psutil
 import requests
 import json
@@ -90,7 +91,7 @@ def register():
 
         "ip": get_local_ip(),
 
-        "os": "Linux"
+        "os": platform.system()
 
     }
 

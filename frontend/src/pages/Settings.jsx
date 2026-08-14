@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 
-import Layout from "../components/layout/Layout";
 import { useAuth } from "../context/auth-context";
 import api from "../services/api";
 import { getWsUrl } from "../hooks/useWebSocket";
+import SettingsCenter from "./SettingsCenter";
 
 
 const CIDR_RE = /^\d+\.\d+\.\d+\.\d+\/\d+$/;
@@ -18,6 +18,8 @@ function Settings() {
 
   const isAdmin =
     String(role || "").toLowerCase() === "admin";
+
+  const [settingsTab, setSettingsTab] = useState("center");
 
   const [backendStatus, setBackendStatus] = useState(
     "Checking..."
@@ -887,18 +889,16 @@ function Settings() {
 
 
   return (
-
-    <Layout>
-
-      <div className="flex justify-between items-center mb-8">
+    <>
+      <div className="ui-page-header !mb-6">
 
         <div>
 
-          <h1 className="text-4xl font-bold text-white">
+          <h1 className="ui-page-title">
             Settings
           </h1>
 
-          <p className="text-gray-400 mt-2">
+          <p className="ui-page-subtitle">
             Configure Smart IT Monitor
           </p>
 
@@ -910,21 +910,44 @@ function Settings() {
         <div
           className={
             message.type === "error"
-            ? "mb-6 bg-red-600 text-white p-4 rounded-lg"
-            : "mb-6 bg-green-600 text-white p-4 rounded-lg"
+            ? "mb-6 rounded-lg border border-red-600/40 bg-red-600/15 p-4 text-[#e6797e]"
+            : "mb-6 rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-[#46d369]"
           }
         >
           {message.text}
         </div>
       )}
 
+      <div className="ui-tabs !mb-8">
+        <button
+          type="button"
+          onClick={() => setSettingsTab("center")}
+          className={`ui-tab ${settingsTab === "center" ? "ui-tab-active" : ""}`}
+        >
+          Configuration Center
+        </button>
+        <button
+          type="button"
+          onClick={() => setSettingsTab("advanced")}
+          className={`ui-tab ${settingsTab === "advanced" ? "ui-tab-active" : ""}`}
+        >
+          Advanced
+        </button>
+      </div>
+
+      {settingsTab === "center" && (
+        <SettingsCenter showMessage={showMessage} />
+      )}
+
+      {settingsTab === "advanced" && (
+      <>
       <div className="grid lg:grid-cols-2 gap-8">
 
         {/* User Profile */}
 
-        <div className="bg-slate-800 rounded-xl p-6">
+        <div className="ui-card p-6">
 
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="text-lg font-bold text-white mb-5 tracking-tight">
             User Profile
           </h2>
 
@@ -973,9 +996,9 @@ function Settings() {
 
         {/* API Configuration */}
 
-        <div className="bg-slate-800 rounded-xl p-6">
+        <div className="ui-card p-6">
 
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="text-lg font-bold text-white mb-5 tracking-tight">
             API Configuration
           </h2>
 
@@ -1009,9 +1032,9 @@ function Settings() {
 
         {/* Notification Settings */}
 
-        <div className="bg-slate-800 rounded-xl p-6">
+        <div className="ui-card p-6">
 
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="text-lg font-bold text-white mb-5 tracking-tight">
             Notification Settings
           </h2>
 
@@ -1135,9 +1158,9 @@ function Settings() {
 
         {/* SMTP Email Configuration */}
 
-        <div className="bg-slate-800 rounded-xl p-6">
+        <div className="ui-card p-6">
 
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="text-lg font-bold text-white mb-5 tracking-tight">
             SMTP Email Configuration
           </h2>
 
@@ -1226,23 +1249,23 @@ function Settings() {
 
         {/* System Status */}
 
-        <div className="bg-slate-800 rounded-xl p-6">
+        <div className="ui-card p-6">
 
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="text-lg font-bold text-white mb-5 tracking-tight">
             System Status
           </h2>
 
           <div className="space-y-5">
 
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
 
-              <span>Backend API</span>
+              <span className="text-[var(--ds-text-2)]">Backend API</span>
 
               <span
                 className={
                   backendStatus === "Online"
-                    ? "text-green-400 font-bold"
-                    : "text-red-400 font-bold"
+                    ? "ui-badge ui-badge-success"
+                    : "ui-badge ui-badge-danger"
                 }
               >
                 {backendStatus}
@@ -1250,25 +1273,25 @@ function Settings() {
 
             </div>
 
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
 
-              <span>Database</span>
+              <span className="text-[var(--ds-text-2)]">Database</span>
 
-              <span className="text-green-400 font-bold">
+              <span className="ui-badge ui-badge-success">
                 PostgreSQL Online
               </span>
 
             </div>
 
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
 
-              <span>WebSocket</span>
+              <span className="text-[var(--ds-text-2)]">WebSocket</span>
 
               <span
                 className={
                   wsStatus === "Active"
-                    ? "text-green-400 font-bold"
-                    : "text-red-400 font-bold"
+                    ? "ui-badge ui-badge-success"
+                    : "ui-badge ui-badge-danger"
                 }
               >
                 {wsStatus}
@@ -1306,9 +1329,9 @@ function Settings() {
 
         {/* Change Password */}
 
-        <div className="bg-slate-800 rounded-xl p-6">
+        <div className="ui-card p-6">
 
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="text-lg font-bold text-white mb-5 tracking-tight">
             Change Password
           </h2>
 
@@ -1386,9 +1409,9 @@ function Settings() {
 
         {/* Application Information */}
 
-        <div className="bg-slate-800 rounded-xl p-6">
+        <div className="ui-card p-6">
 
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="text-lg font-bold text-white mb-5 tracking-tight">
             Application Information
           </h2>
 
@@ -1485,9 +1508,9 @@ function Settings() {
 
         {isAdmin && (
 
-          <div className="bg-slate-800 rounded-xl p-6">
+          <div className="ui-card p-6">
 
-            <h2 className="text-2xl font-bold mb-6">
+            <h2 className="text-lg font-bold text-white mb-5 tracking-tight">
               Departments
             </h2>
 
@@ -1584,9 +1607,9 @@ function Settings() {
 
         {isAdmin && (
 
-          <div className="bg-slate-800 rounded-xl p-6">
+          <div className="ui-card p-6">
 
-            <h2 className="text-2xl font-bold mb-6">
+            <h2 className="text-lg font-bold text-white mb-5 tracking-tight">
               Alert Thresholds
             </h2>
 
@@ -1686,9 +1709,9 @@ function Settings() {
 
         {isAdmin && (
 
-          <div className="bg-slate-800 rounded-xl p-6">
+          <div className="ui-card p-6">
 
-            <h2 className="text-2xl font-bold mb-6">
+            <h2 className="text-lg font-bold text-white mb-5 tracking-tight">
               Network Scan Ranges
             </h2>
 
@@ -1755,9 +1778,9 @@ function Settings() {
 
         {/* Storage & Statistics */}
 
-        <div className="bg-slate-800 rounded-xl p-6">
+        <div className="ui-card p-6">
 
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="text-lg font-bold text-white mb-5 tracking-tight">
             System Statistics
           </h2>
 
@@ -1860,7 +1883,9 @@ function Settings() {
         </div>
 
       </div>
-    </Layout>
+      </>
+      )}
+    </>
 
   );
 
