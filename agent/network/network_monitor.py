@@ -30,7 +30,10 @@ def get_api_url() -> str:
         "SMART_MONITOR_API_URL",
         os.getenv(
             "API_URL",
-            "http://backend:8000",
+            os.getenv(
+                "SMARTIT_API_URL",
+                "http://backend:8000",
+            ),
         ),
     ).rstrip("/")
 

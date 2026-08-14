@@ -44,4 +44,4 @@ if [[ ! -x "$PYTHON_BIN" ]]; then
     PYTHON_BIN="python3"
 fi
 
-exec "$PYTHON_BIN" "$AGENT_DIR/smartit_agent.py"
+exec "$PYTHON_BIN" -u "$AGENT_DIR/smartit_agent.py"
