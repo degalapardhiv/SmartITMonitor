@@ -31,6 +31,8 @@ screenshots/
 cctv-final.png
 settings-center.png
 software-deployment-ui.png
+dashboard-live.png
+web-access-live.png
 *.error-backup
 backups/
 *.sql

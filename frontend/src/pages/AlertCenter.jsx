@@ -57,7 +57,7 @@ export default function AlertCenter() {
   async function loadAlerts(currentPage = 1) {
     setLoading(true);
     try {
-      const res = await api.get(`/alerts/?page=${currentPage}&limit=50`);
+      const res = await api.get(`/alerts?page=${currentPage}&limit=50`);
       setAlerts(Array.isArray(res.data) ? res.data : []);
       setError("");
     } catch (err) {
