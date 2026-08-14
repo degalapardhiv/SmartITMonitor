@@ -294,6 +294,37 @@ docker compose up -d --build
 On first start the backend seeds the bootstrap admin account
 (`ADMIN_USERNAME` / `ADMIN_PASSWORD`) and creates all database tables.
 
+## Access over any interface (wlan0 / eth0 / any NIC)
+
+The stack is **not tied to Docker's localhost**. Every service binds to
+`0.0.0.0`, so it answers on **any** network interface the host has up — WiFi
+(`wlan0`), Ethernet (`eth0`), etc. The frontend builds its API and WebSocket
+URLs from the browser's `window.location`, so nothing is hard-coded to a
+specific IP.
+
+After `docker compose up -d`, reach the UI and APIs from any machine on the
+LAN using the host's IP for whichever interface is active:
+
+```bash
+# find the server IP on the active interface
+ip -o -4 addr show | awk '{print $2, $4}'
+
+# then browse to (port 80 for the UI, 8000 for the API/Swagger)
+#   http://<SERVER_IP>/          # UI (nginx -> backend, /api + /ws proxied)
+#   http://<SERVER_IP>:8000/     # backend + /docs
+#   http://<SERVER_IP>:3000/     # Grafana
+#   http://<SERVER_IP>:9090/     # Prometheus
+```
+
+No changes are needed when switching between `wlan0` and `eth0` — the
+published ports (`80`, `8000`, `9090`, `3000`) accept connections on all
+interfaces. The WebSocket (`/ws`) is proxied through nginx so real-time
+updates work from any host too.
+
+> **CORS**: the production UI is same-origin (nginx), so CORS is not required.
+> If you instead run a separate Vite dev server pointed at the API, set
+> `CORS_ORIGINS` in `.env` (see `.env.example`).
+
 ## Check Containers
 
 ```bash
