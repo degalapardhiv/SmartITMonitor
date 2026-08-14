@@ -16,6 +16,16 @@ logger = logging.getLogger("smart-monitor-network")
 
 
 def get_api_url() -> str:
+    try:
+        import server_config
+
+        pushed = server_config.get("agent_api_url")
+
+        if pushed:
+            return str(pushed).rstrip("/")
+    except Exception:
+        pass
+
     return os.getenv(
         "SMART_MONITOR_API_URL",
         os.getenv(

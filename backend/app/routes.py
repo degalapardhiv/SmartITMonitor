@@ -21,6 +21,7 @@ from .services.network_scanner import scan_network
 from .metrics import update_device_metrics as refresh_metrics_gauges
 from .auth_dependency import get_current_user
 from .role_dependency import require_admin
+from .agent_auth import get_agent_device
 
 router = APIRouter()
 
@@ -655,6 +656,13 @@ def agent_register(
         by_ip.os = data.os
         by_ip.agent_token = secrets.token_hex(16)
 
+        if data.department:
+            by_ip.department = data.department
+        if data.lab:
+            by_ip.lab = data.lab
+        if data.location:
+            by_ip.location = data.location
+
         db.commit()
         db.refresh(by_ip)
 
@@ -675,9 +683,9 @@ def agent_register(
         cpu=0,
         ram=0,
         disk=0,
-        department="Unknown",
-        lab="Unknown",
-        location="Unknown",
+        department=data.department or "Unknown",
+        lab=data.lab or "Unknown",
+        location=data.location or "Unknown",
         agent_token=token
     )
 
@@ -691,6 +699,70 @@ def agent_register(
         "device_id": device.id,
         "agent_token": token
     }
+
+
+# ==========================================
+# Agent Configuration (admin-pushed settings)
+# ==========================================
+
+@router.get("/agent/config")
+def agent_config(
+    agent_device=Depends(get_agent_device),
+    db: Session = Depends(get_db),
+):
+    """Agent endpoint: admin-configured settings for all agents.
+
+    Administrators set these in Settings > Agent Configuration. Agents poll
+    this endpoint and apply the returned values (server URL, network ranges,
+    polling intervals, etc.) automatically.
+    """
+    from app.settings_center_service import get_agent_config
+
+    return get_agent_config(db)
+
+
+@router.post("/agent/attributes")
+def agent_attributes(
+    payload: dict,
+    agent_device=Depends(get_agent_device),
+    db: Session = Depends(get_db),
+):
+    """Agent endpoint: apply admin-pushed device attributes.
+
+    Agents send department/lab/location from the Agent Configuration section
+    so endpoints inherit the site's defaults without per-machine edits.
+    """
+    device = (
+        db.query(Device)
+        .filter(Device.id == agent_device["id"])
+        .first()
+    )
+
+    if device is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Device not found",
+        )
+
+    updated = {}
+
+    for field in ("department", "lab", "location"):
+        value = (payload or {}).get(field)
+
+        if not value:
+            continue
+
+        value = str(value).strip()
+
+        if value and getattr(device, field, None) != value:
+            setattr(device, field, value)
+            updated[field] = value
+
+    if updated:
+        db.commit()
+        db.refresh(device)
+
+    return {"device_id": device.id, "updated": updated}
 
 
 # ==========================================

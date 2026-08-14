@@ -12,6 +12,8 @@ sys.path.insert(
     os.path.dirname(os.path.abspath(__file__)),
 )
 
+import server_config
+
 from network.network_monitor import run_discovery_once
 
 API_URL = os.getenv(
@@ -25,6 +27,7 @@ AGENT_TOKEN = os.getenv(
 )
 
 DEVICE_ID = os.getenv("SMARTIT_DEVICE_ID", "")
+REQUEST_TIMEOUT = int(os.getenv("SMARTIT_REQUEST_TIMEOUT", "10"))
 INTERVAL = int(os.getenv("SMARTIT_INTERVAL", "5"))
 NETWORK_DISCOVERY_INTERVAL = int(
     os.getenv("SMARTIT_NETWORK_DISCOVERY_INTERVAL", "60")
@@ -42,6 +45,116 @@ ACTIVITY_INTERVAL = int(os.getenv("SMARTIT_ACTIVITY_INTERVAL", "30"))
 ACTIVITY_CONFIG_REFRESH_INTERVAL = int(
     os.getenv("SMARTIT_ACTIVITY_CONFIG_INTERVAL", "300")
 )
+
+
+# ---------------------------------------------------------------------------
+# Server-pushed configuration (admin Settings > Agent Configuration)
+# ---------------------------------------------------------------------------
+
+
+def apply_server_config():
+    """Apply admin-pushed values on top of the local environment."""
+    global API_URL, REQUEST_TIMEOUT, INTERVAL
+    global NETWORK_DISCOVERY_INTERVAL, REBOOT_CMD
+    global DEPLOYMENT_POLL_INTERVAL, ACTIVITY_INTERVAL
+
+    api_url = server_config.get("agent_api_url")
+
+    if api_url:
+        API_URL = str(api_url).rstrip("/")
+        os.environ["SMARTIT_API_URL"] = API_URL
+
+    REQUEST_TIMEOUT = int(
+        server_config.get("request_timeout_seconds", REQUEST_TIMEOUT)
+    )
+    INTERVAL = int(
+        server_config.get("metrics_interval_seconds", INTERVAL)
+    )
+    NETWORK_DISCOVERY_INTERVAL = int(
+        server_config.get("discovery_interval_seconds", NETWORK_DISCOVERY_INTERVAL)
+    )
+    DEPLOYMENT_POLL_INTERVAL = int(
+        server_config.get("deployment_poll_interval_seconds", DEPLOYMENT_POLL_INTERVAL)
+    )
+    ACTIVITY_INTERVAL = int(
+        server_config.get("activity_interval_seconds", ACTIVITY_INTERVAL)
+    )
+
+    reboot_cmd = server_config.get("agent_reboot_cmd", "")
+
+    if reboot_cmd:
+        REBOOT_CMD = str(reboot_cmd).strip()
+
+    software_poll = int(
+        server_config.get("software_poll_interval_seconds", 30)
+    )
+    web_access_poll = int(
+        server_config.get("web_access_poll_interval_seconds", 15)
+    )
+
+    for module_name, attr, value in (
+        ("software_deployment", "SOFTWARE_POLL_INTERVAL", software_poll),
+        ("web_access", "WEB_ACCESS_POLL_INTERVAL", web_access_poll),
+    ):
+        try:
+            module = __import__(module_name)
+            module.API_URL = API_URL
+            setattr(module, attr, value)
+        except Exception:
+            pass
+
+    _push_attributes()
+
+
+def _push_attributes():
+    """Push admin-configured department/lab/location to the device record."""
+    attributes = {
+        key: server_config.get(key, "")
+        for key in (
+            "agent_department",
+            "agent_lab",
+            "agent_location",
+        )
+    }
+
+    attributes = {
+        key: str(value).strip()
+        for key, value in attributes.items()
+        if value
+    }
+
+    if not attributes:
+        return
+
+    headers = {}
+
+    if AGENT_TOKEN:
+        headers["x-agent-token"] = AGENT_TOKEN
+
+    try:
+        response = requests.post(
+            f"{API_URL}/agent/attributes",
+            json=attributes,
+            headers=headers,
+            timeout=REQUEST_TIMEOUT,
+        )
+
+        print(
+            f"[SmartIT] Device attributes pushed HTTP={response.status_code}"
+        )
+    except Exception as exc:
+        print(f"[SmartIT] Device attributes error: {exc}")
+
+
+def start_server_config():
+    server_config.set_refresh_callback(apply_server_config)
+
+    if not server_config.refresh():
+        print("[SmartIT] Server config fetch failed; using local settings")
+
+    apply_server_config()
+
+    server_config.start_refresh_thread()
 
 
 def collect_metrics():
@@ -76,7 +189,7 @@ def send_metrics():
                 "disk": metrics["disk"],
             },
             headers=headers,
-            timeout=10,
+            timeout=REQUEST_TIMEOUT,
         )
 
         print(
@@ -109,7 +222,11 @@ def poll_pending_deployment():
         headers["x-agent-token"] = AGENT_TOKEN
 
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(
+            url,
+            headers=headers,
+            timeout=REQUEST_TIMEOUT,
+        )
 
         if response.status_code != 200:
             return
@@ -130,7 +247,11 @@ def poll_pending_deployment():
 
         ack_url = f"{API_URL}/deployments/{deployment_id}/agent-ack"
 
-        ack = requests.post(ack_url, headers=headers, timeout=10)
+        ack = requests.post(
+            ack_url,
+            headers=headers,
+            timeout=REQUEST_TIMEOUT,
+        )
 
         print(
             f"[SmartIT] Deployment {deployment_id} acknowledged "
@@ -271,6 +392,12 @@ def main():
     print(f"[SmartIT] API: {API_URL}")
     print(f"[SmartIT] Device ID: {DEVICE_ID}")
     print(f"[SmartIT] Interval: {INTERVAL}s")
+
+    try:
+        start_server_config()
+        print("[SmartIT] Server config thread started")
+    except Exception as exc:
+        print(f"[SmartIT] Server config unavailable: {exc}")
 
     try:
         network_thread = threading.Thread(

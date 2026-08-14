@@ -429,6 +429,12 @@ The agent runs a metrics loop (heartbeats + CPU/RAM/Disk submission) and, in a
 separate daemon thread, periodically runs LAN host discovery via `nmap` and
 submits the results to `POST /network/discovery`. Both loops are env-driven.
 
+**Admin-pushed settings:** Agents also poll `GET /agent/config` (60s cadence)
+and apply whatever an admin configures under **Settings > Agent Configuration**
+— server URL, network ranges, all polling intervals, the PXE reboot command,
+and default department/lab/location. Server values override the local
+`.agent.env`, so you can retarget a fleet without touching each machine.
+
 ### Onboarding endpoints (deploy.sh)
 
 Run once on every monitored endpoint to register it and write a tuned

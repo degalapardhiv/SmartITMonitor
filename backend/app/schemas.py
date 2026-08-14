@@ -44,6 +44,9 @@ class AgentRegister(BaseModel):
     hostname: str
     ip: str
     os: str
+    department: str | None = None
+    lab: str | None = None
+    location: str | None = None
 
 
 class AgentRegisterResponse(BaseModel):

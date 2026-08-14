@@ -35,6 +35,16 @@ def clean_settings(db_conn):
         db_conn,
         "DELETE FROM system_settings WHERE key = 'telegram'",
     )
+    db_execute(
+        db_conn,
+        "DELETE FROM monitor_settings WHERE key IN ("
+        "'agent_api_url','network_ranges','metrics_interval_seconds',"
+        "'request_timeout_seconds','activity_interval_seconds',"
+        "'software_poll_interval_seconds','web_access_poll_interval_seconds',"
+        "'deployment_poll_interval_seconds','discovery_interval_seconds',"
+        "'agent_reboot_cmd','agent_department','agent_lab','agent_location'"
+        ")",
+    )
     db_execute(db_conn, "DELETE FROM settings_audit")
 
 
@@ -72,6 +82,7 @@ def test_list_sections_contains_all_groups(client, auth_headers):
         "cctv",
         "retention",
         "websocket",
+        "agent",
     ]:
         assert expected in keys
 
@@ -446,3 +457,134 @@ def test_agent_config_returns_interval(
     )
     assert response.status_code == 200
     assert response.json()["interval_seconds"] == 120
+
+
+def test_agent_config_requires_agent_token(client):
+    response = client.get("/agent/config")
+    assert response.status_code == 401
+
+
+def test_agent_config_returns_defaults(client):
+    from conftest import AGENT_TOKEN
+
+    response = client.get(
+        "/agent/config",
+        headers={"X-Agent-Token": AGENT_TOKEN},
+    )
+    assert response.status_code == 200, response.text
+
+    values = response.json()
+
+    assert values["metrics_interval_seconds"] == 5
+    assert values["discovery_interval_seconds"] == 60
+    assert values["deployment_poll_interval_seconds"] == 15
+    assert values["software_poll_interval_seconds"] == 30
+    assert values["web_access_poll_interval_seconds"] == 15
+    assert values["network_ranges"] == []
+
+
+def test_agent_config_reflects_admin_settings(
+    client, auth_headers, clean_settings
+):
+    from conftest import AGENT_TOKEN
+
+    response = client.put(
+        "/settings-center/agent",
+        headers=auth_headers,
+        json={
+            "values": {
+                "agent_api_url": "http://10.20.30.40:8000",
+                "network_ranges": ["10.20.0.0/24", "192.168.5.0/24"],
+                "metrics_interval_seconds": 7,
+                "discovery_interval_seconds": 90,
+                "agent_department": "QA Dept",
+                "agent_lab": "Lab 9",
+                "agent_location": "Block C",
+            }
+        },
+    )
+    assert response.status_code == 200, response.text
+
+    response = client.get(
+        "/agent/config",
+        headers={"X-Agent-Token": AGENT_TOKEN},
+    )
+    assert response.status_code == 200, response.text
+
+    values = response.json()
+
+    assert values["agent_api_url"] == "http://10.20.30.40:8000"
+    assert values["network_ranges"] == ["10.20.0.0/24", "192.168.5.0/24"]
+    assert values["metrics_interval_seconds"] == 7
+    assert values["discovery_interval_seconds"] == 90
+    assert values["agent_department"] == "QA Dept"
+    assert values["agent_lab"] == "Lab 9"
+    assert values["agent_location"] == "Block C"
+
+
+def test_agent_attributes_requires_agent_token(client):
+    response = client.post("/agent/attributes", json={})
+    assert response.status_code == 401
+
+
+def test_agent_attributes_updates_device(
+    client, db_conn, clean_settings
+):
+    from conftest import AGENT_TOKEN
+
+    hostname = "qa-attrs-" + uuid.uuid4().hex[:8]
+
+    registered = client.post(
+        "/agent/register",
+        json={"hostname": hostname, "ip": "10.99.0.50", "os": "Linux"},
+    )
+    assert registered.status_code == 200, registered.text
+
+    device_id = registered.json()["device_id"]
+    token = registered.json()["agent_token"]
+
+    try:
+        response = client.post(
+            "/agent/attributes",
+            headers={"X-Agent-Token": token},
+            json={
+                "department": "QA Dept",
+                "lab": "Lab 9",
+                "location": "Block C",
+            },
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["updated"] == {
+            "department": "QA Dept",
+            "lab": "Lab 9",
+            "location": "Block C",
+        }
+
+        row = db_execute(
+            db_conn,
+            "SELECT department, lab, location FROM devices WHERE id = %s",
+            (device_id,),
+        )
+        assert row[0] == ("QA Dept", "Lab 9", "Block C")
+    finally:
+        db_execute(db_conn, "DELETE FROM devices WHERE id = %s", (device_id,))
+
+
+def test_agent_attributes_ignores_wrong_token(client, db_conn):
+    hostname = "qa-attrs-wrong-" + uuid.uuid4().hex[:8]
+
+    registered = client.post(
+        "/agent/register",
+        json={"hostname": hostname, "ip": "10.99.0.51", "os": "Linux"},
+    )
+    device_id = registered.json()["device_id"]
+
+    try:
+        response = client.post(
+            "/agent/attributes",
+            headers={"X-Agent-Token": "not-the-real-token"},
+            json={"department": "Nope"},
+        )
+        assert response.status_code == 401
+    finally:
+        db_execute(db_conn, "DELETE FROM devices WHERE id = %s", (device_id,))

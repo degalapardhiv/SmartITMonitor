@@ -68,7 +68,7 @@ def get_settings_center(
                         "key": spec["key"],
                         "label": spec["label"],
                         "type": spec["type"],
-                        "default": spec["default"],
+                        "default": spec.get("default", ""),
                         "help": spec.get("help", ""),
                         "choices": spec.get("choices", []),
                         "item_label": spec.get("item_label", ""),

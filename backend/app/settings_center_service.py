@@ -595,6 +595,130 @@ SECTIONS = {
             },
         ],
     },
+    "agent": {
+        "label": "Agent Configuration",
+        "description": (
+            "Settings pushed to every managed agent. Agents poll the server "
+            "and apply these automatically — no need to edit files on each "
+            "machine. The server URL and network ranges are the two most "
+            "important when endpoints live across subnets/VLANs."
+        ),
+        "keys": [
+            {
+                "key": "agent_api_url",
+                "label": "Server API URL",
+                "type": "url",
+                "optional": True,
+                "help": (
+                    "Base URL agents should use to reach this server over "
+                    "the LAN, e.g. http://192.168.1.10:8000. Agents that "
+                    "fetch config will switch to this URL. Leave empty to "
+                    "keep each agent's local setting."
+                ),
+            },
+            {
+                "key": "network_ranges",
+                "label": "Network Ranges",
+                "type": "list",
+                "default": [],
+                "item_label": "CIDR range",
+                "help": (
+                    "CIDR ranges agents scan for device discovery "
+                    "(one per entry), e.g. 10.0.0.0/24,192.168.1.0/24."
+                ),
+            },
+            {
+                "key": "metrics_interval_seconds",
+                "label": "Metrics Interval (seconds)",
+                "type": "int",
+                "default": 5,
+                "min": 2,
+                "max": 3600,
+                "help": "How often agents report CPU/RAM/disk metrics.",
+            },
+            {
+                "key": "request_timeout_seconds",
+                "label": "Request Timeout (seconds)",
+                "type": "int",
+                "default": 10,
+                "min": 2,
+                "max": 300,
+            },
+            {
+                "key": "activity_interval_seconds",
+                "label": "Activity Interval (seconds)",
+                "type": "int",
+                "default": 30,
+                "min": 10,
+                "max": 3600,
+            },
+            {
+                "key": "software_poll_interval_seconds",
+                "label": "Software Poll (seconds)",
+                "type": "int",
+                "default": 30,
+                "min": 10,
+                "max": 3600,
+            },
+            {
+                "key": "web_access_poll_interval_seconds",
+                "label": "Web Access Poll (seconds)",
+                "type": "int",
+                "default": 15,
+                "min": 10,
+                "max": 3600,
+            },
+            {
+                "key": "deployment_poll_interval_seconds",
+                "label": "OS Deployment Poll (seconds)",
+                "type": "int",
+                "default": 15,
+                "min": 10,
+                "max": 3600,
+            },
+            {
+                "key": "discovery_interval_seconds",
+                "label": "Discovery Interval (seconds)",
+                "type": "int",
+                "default": 60,
+                "min": 15,
+                "max": 3600,
+            },
+            {
+                "key": "agent_reboot_cmd",
+                "label": "Reboot Command (PXE)",
+                "type": "str",
+                "optional": True,
+                "max_length": 200,
+                "help": (
+                    "Command run on a machine when an OS reimage is "
+                    "accepted (e.g. systemctl reboot). Empty disables "
+                    "auto-reboot."
+                ),
+            },
+            {
+                "key": "agent_department",
+                "label": "Default Department",
+                "type": "str",
+                "optional": True,
+                "max_length": 120,
+            },
+            {
+                "key": "agent_lab",
+                "label": "Default Lab",
+                "type": "str",
+                "optional": True,
+                "max_length": 120,
+            },
+            {
+                "key": "agent_location",
+                "label": "Default Location",
+                "type": "str",
+                "optional": True,
+                "max_length": 120,
+            },
+        ],
+    },
 }
 
 
@@ -677,7 +801,7 @@ def _render_value(spec, stored):
         ]
 
     if stored is None:
-        return spec["default"]
+        return spec.get("default", "")
 
     return stored
 
@@ -1117,7 +1241,7 @@ def apply_section(db: Session, section, payload, actor):
             if str(old) == str(new_text):
                 continue
 
-        if old is None and new_text == str(spec["default"]):
+        if old is None and new_text == str(spec.get("default", "")):
             continue
 
         set_setting(db, key, stored)
@@ -1451,3 +1575,40 @@ def start_settings_retention_cleanup():
     )
 
     thread.start()
+
+
+def get_agent_config(db: Session):
+    """Resolved settings served to managed agents (DB value -> default).
+
+    Agents poll this endpoint and apply the returned values, so an admin can
+    point every endpoint at this server over the LAN and tune polling without
+    editing files on each machine.
+    """
+    meta = SECTIONS["agent"]
+
+    defaults = {
+        spec["key"]: spec.get("default", "")
+        for spec in meta["keys"]
+    }
+
+    values = {}
+
+    for spec in meta["keys"]:
+        key = spec["key"]
+        stored = get_setting(db, key)
+
+        if stored is None or stored == "":
+            values[key] = defaults[key]
+            continue
+
+        if spec["type"] == "list":
+            values[key] = _render_value(spec, stored)
+        elif spec["type"] == "int":
+            values[key] = _int(stored, defaults[key])
+        elif spec["type"] == "bool":
+            values[key] = _bool(stored, defaults[key])
+        else:
+            values[key] = stored
+
+    return values
+
