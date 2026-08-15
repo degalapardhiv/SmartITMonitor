@@ -16,36 +16,85 @@ def clean_audit(db_conn):
     db_execute(db_conn, "DELETE FROM settings_audit")
 
 
+def _settings_keys():
+    return [
+        "site_name",
+        "login_redirect_route",
+        "support_url",
+        "status_page_url",
+        "telegram_bot_token",
+        "telegram_chat_id",
+        "telegram_enabled",
+        "cpu_threshold",
+        "ram_threshold",
+        "disk_threshold",
+        "alert_cooldown_minutes",
+        "alert_monitor_interval_seconds",
+        "scan_ranges",
+        "heartbeat_timeout_seconds",
+        "heartbeat_check_interval_seconds",
+        "endpoint_activity_interval_seconds",
+        "agent_api_url",
+        "network_ranges",
+        "metrics_interval_seconds",
+        "request_timeout_seconds",
+        "activity_interval_seconds",
+        "software_poll_interval_seconds",
+        "web_access_poll_interval_seconds",
+        "deployment_poll_interval_seconds",
+        "discovery_interval_seconds",
+        "agent_reboot_cmd",
+        "agent_department",
+        "agent_lab",
+        "agent_location",
+    ]
+
+
 @pytest.fixture()
 def clean_settings(db_conn):
-    yield
+    keys = _settings_keys()
+
+    placeholders = ",".join(["%s"] * len(keys))
+    snapshot = db_execute(
+        db_conn,
+        f"SELECT key, value FROM monitor_settings WHERE key IN ({placeholders})",
+        keys,
+    )
+    telegram_snapshot = db_execute(
+        db_conn,
+        "SELECT value FROM system_settings WHERE key = 'telegram'",
+    )
+
     db_execute(
         db_conn,
-        "DELETE FROM monitor_settings WHERE key IN ("
-        "'site_name','login_redirect_route','support_url',"
-        "'status_page_url','telegram_bot_token','telegram_chat_id',"
-        "'telegram_enabled','cpu_threshold','ram_threshold',"
-        "'disk_threshold','alert_cooldown_minutes',"
-        "'alert_monitor_interval_seconds','scan_ranges',"
-        "'heartbeat_timeout_seconds','heartbeat_check_interval_seconds',"
-        "'endpoint_activity_interval_seconds'"
-        ")",
+        f"DELETE FROM monitor_settings WHERE key IN ({placeholders})",
+        keys,
     )
-    db_execute(
-        db_conn,
-        "DELETE FROM system_settings WHERE key = 'telegram'",
-    )
-    db_execute(
-        db_conn,
-        "DELETE FROM monitor_settings WHERE key IN ("
-        "'agent_api_url','network_ranges','metrics_interval_seconds',"
-        "'request_timeout_seconds','activity_interval_seconds',"
-        "'software_poll_interval_seconds','web_access_poll_interval_seconds',"
-        "'deployment_poll_interval_seconds','discovery_interval_seconds',"
-        "'agent_reboot_cmd','agent_department','agent_lab','agent_location'"
-        ")",
-    )
+    db_execute(db_conn, "DELETE FROM system_settings WHERE key = 'telegram'")
     db_execute(db_conn, "DELETE FROM settings_audit")
+
+    yield
+
+    db_execute(
+        db_conn,
+        f"DELETE FROM monitor_settings WHERE key IN ({placeholders})",
+        keys,
+    )
+    db_execute(db_conn, "DELETE FROM system_settings WHERE key = 'telegram'")
+    db_execute(db_conn, "DELETE FROM settings_audit")
+
+    for key, value in snapshot or []:
+        db_execute(
+            db_conn,
+            "INSERT INTO monitor_settings (key, value) VALUES (%s, %s)",
+            (key, value),
+        )
+    for (value,) in telegram_snapshot or []:
+        db_execute(
+            db_conn,
+            "INSERT INTO system_settings (key, value) VALUES ('telegram', %s)",
+            (value,),
+        )
 
 
 def test_settings_center_requires_admin(client, viewer_headers):
@@ -464,7 +513,7 @@ def test_agent_config_requires_agent_token(client):
     assert response.status_code == 401
 
 
-def test_agent_config_returns_defaults(client):
+def test_agent_config_returns_defaults(client, clean_settings):
     from conftest import AGENT_TOKEN
 
     response = client.get(
