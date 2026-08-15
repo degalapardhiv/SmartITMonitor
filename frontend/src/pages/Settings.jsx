@@ -519,7 +519,9 @@ function Settings() {
       formData.append("current_password", currentPassword);
       formData.append("new_password", newPassword);
 
-      await api.post("/change-password", formData);
+      await api.post("/change-password", formData, {
+        headers: { "Content-Type": undefined }
+      });
 
       setPasswordForm({
         currentPassword: "",
