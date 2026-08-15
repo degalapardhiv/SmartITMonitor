@@ -256,7 +256,7 @@ export default function SoftwareDeployment() {
       }
 
       const res = await api.post("/software/packages", data, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: { "Content-Type": undefined },
       });
 
       setMessage(
