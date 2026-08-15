@@ -29,10 +29,33 @@ def get_network_ranges_from_env() -> List[str]:
     return ranges
 
 
+_CONTAINER_IFACE_PREFIXES = (
+    "br-",
+    "docker",
+    "veth",
+    "virbr",
+    "vboxnet",
+)
+
+_LEGACY_DOCKER_NETWORKS = (
+    "172.17.0.0/16",
+    "172.18.0.0/16",
+    "172.19.0.0/16",
+    "172.20.0.0/16",
+)
+
+
+def _is_container_interface(interface: str) -> bool:
+    return interface.startswith(_CONTAINER_IFACE_PREFIXES)
+
+
 def get_local_networks() -> List[Dict[str, str]]:
     """
     Return IPv4 networks associated with local interfaces
     plus any explicit ranges configured via env vars.
+
+    Container/virtual interfaces (Docker bridges, veth, virbr, VBox) are
+    skipped so LAN discovery doesn't stall scanning huge private ranges.
     """
     networks = []
 
@@ -54,12 +77,18 @@ def get_local_networks() -> List[Dict[str, str]]:
         interface = parts[1]
         address = parts[3]
 
+        if _is_container_interface(interface):
+            continue
+
         try:
             network = ipaddress.ip_interface(address).network
         except ValueError:
             continue
 
         if network.is_link_local or network.is_loopback:
+            continue
+
+        if str(network) in _LEGACY_DOCKER_NETWORKS:
             continue
 
         networks.append(
