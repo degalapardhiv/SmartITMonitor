@@ -17,6 +17,7 @@ export default function NetworkDiscovery() {
   async function load() {
     try {
       setError("");
+      setLoading(true);
 
       const [devicesResponse, summaryResponse] = await Promise.all([
         api.get("/network/devices"),
@@ -68,8 +69,12 @@ export default function NetworkDiscovery() {
           <h1 className="ui-page-title">Network Discovery</h1>
           <p className="ui-page-subtitle">Devices discovered on authorized networks.</p>
         </div>
-        <button className="ui-btn ui-btn-secondary ui-btn-sm" onClick={load}>
-          <FiRefreshCw /> Refresh
+        <button
+          className="ui-btn ui-btn-secondary ui-btn-sm"
+          onClick={load}
+          disabled={loading}
+        >
+          <FiRefreshCw /> {loading ? "Refreshing..." : "Refresh"}
         </button>
       </div>
 
