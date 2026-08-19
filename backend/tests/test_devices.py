@@ -32,36 +32,45 @@ def test_delete_device_cleans_orphan_prone_tables(client, auth_headers, db_conn)
     created = client.post("/devices", json=payload, headers=auth_headers)
     assert created.status_code == 200, created.text
     device_id = created.json()["id"]
+    hostname = payload["hostname"]
+    try:
+        package_id = db_execute(
+            db_conn,
+            "INSERT INTO software_packages (name, version) VALUES (%s, %s) RETURNING id",
+            (f"qa-cleanup-pkg-{uuid.uuid4().hex[:8]}", "1.0"),
+        )[0][0]
+        deployment_id = db_execute(
+            db_conn,
+            "INSERT INTO software_deployments (package_id, action, status) VALUES (%s, %s, %s) RETURNING id",
+            (package_id, "install", "running"),
+        )[0][0]
 
-    package_id = db_execute(
-        db_conn,
-        "INSERT INTO software_packages (name, version) VALUES (%s, %s) RETURNING id",
-        (f"qa-cleanup-pkg-{uuid.uuid4().hex[:8]}", "1.0"),
-    )[0][0]
-    deployment_id = db_execute(
-        db_conn,
-        "INSERT INTO software_deployments (package_id, action, status) VALUES (%s, %s, %s) RETURNING id",
-        (package_id, "install", "running"),
-    )[0][0]
+        inserts = {
+            "alerts": (f"INSERT INTO alerts (device_id, hostname, alert_type, severity, status) VALUES (%s, %s, %s, %s, 'OPEN')", (device_id, "qa-cleanup", "CPU", "HIGH")),
+            "deployments": (f"INSERT INTO deployments (device_id, os_image_id) VALUES (%s, %s)", (device_id, 1)),
+            "endpoint_activity": (f"INSERT INTO endpoint_activity (device_id, hostname) VALUES (%s, %s)", (device_id, "qa-cleanup")),
+            "software_deployment_events": (f"INSERT INTO software_deployment_events (deployment_id, device_id) VALUES (%s, %s)", (deployment_id, device_id)),
+            "usb_requests": (f"INSERT INTO usb_requests (device_id, status) VALUES (%s, 'pending')", (device_id,)),
+            "web_access_sync_logs": (f"INSERT INTO web_access_sync_logs (device_id, hostname) VALUES (%s, %s)", (device_id, "qa-cleanup")),
+        }
+        for sql, params in inserts.values():
+            db_execute(db_conn, sql, params)
 
-    inserts = {
-        "alerts": (f"INSERT INTO alerts (device_id, hostname, alert_type, severity, status) VALUES (%s, %s, %s, %s, 'OPEN')", (device_id, "qa-cleanup", "CPU", "HIGH")),
-        "deployments": (f"INSERT INTO deployments (device_id, os_image_id) VALUES (%s, %s)", (device_id, 1)),
-        "endpoint_activity": (f"INSERT INTO endpoint_activity (device_id, hostname) VALUES (%s, %s)", (device_id, "qa-cleanup")),
-        "software_deployment_events": (f"INSERT INTO software_deployment_events (deployment_id, device_id) VALUES (%s, %s)", (deployment_id, device_id)),
-        "usb_requests": (f"INSERT INTO usb_requests (device_id, status) VALUES (%s, 'pending')", (device_id,)),
-        "web_access_sync_logs": (f"INSERT INTO web_access_sync_logs (device_id, hostname) VALUES (%s, %s)", (device_id, "qa-cleanup")),
-    }
-    for sql, params in inserts.values():
-        db_execute(db_conn, sql, params)
+        deleted = client.delete(f"/devices/{device_id}", headers=auth_headers)
+        assert deleted.status_code == 200, deleted.text
 
-    deleted = client.delete(f"/devices/{device_id}", headers=auth_headers)
-    assert deleted.status_code == 200, deleted.text
-
-    for table in inserts:
+        for table in inserts:
+            with db_conn.cursor() as cursor:
+                cursor.execute(f"SELECT count(*) FROM {table} WHERE device_id = %s", (device_id,))
+                assert cursor.fetchone()[0] == 0, f"orphan rows left in {table}"
+    finally:
         with db_conn.cursor() as cursor:
-            cursor.execute(f"SELECT count(*) FROM {table} WHERE device_id = %s", (device_id,))
-            assert cursor.fetchone()[0] == 0, f"orphan rows left in {table}"
+            cursor.execute("SELECT id FROM devices WHERE hostname = %s", (hostname,))
+            row = cursor.fetchone()
+        if row:
+            client.delete(f"/devices/{row[0]}", headers=auth_headers)
+        db_execute(db_conn, "DELETE FROM software_deployments WHERE package_id IN (SELECT id FROM software_packages WHERE name LIKE %s)", ("qa-cleanup-pkg-%",))
+        db_execute(db_conn, "DELETE FROM software_packages WHERE name LIKE %s", ("qa-cleanup-pkg-%",))
 
 
 def test_devices_returns_list(client, auth_headers):
