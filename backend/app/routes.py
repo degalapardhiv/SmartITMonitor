@@ -485,6 +485,20 @@ async def delete_device(
 
     hostname = device.hostname
 
+    from sqlalchemy import text as sa_text
+    for child_table in (
+        "alerts",
+        "deployments",
+        "endpoint_activity",
+        "software_deployment_events",
+        "usb_requests",
+        "web_access_sync_logs",
+    ):
+        db.execute(
+            sa_text(f"DELETE FROM {child_table} WHERE device_id = :device_id"),
+            {"device_id": device_id},
+        )
+
     db.delete(device)
     db.commit()
 
