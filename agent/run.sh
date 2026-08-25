@@ -37,10 +37,10 @@ if [[ -z "$SMARTIT_AGENT_TOKEN" ]]; then
     echo "run.sh: The backend will reject metric submissions without it." >&2
 fi
 
-PYTHON_BIN="$REPO_ROOT/.venv-agent/bin/python"
+PYTHON_BIN="$AGENT_DIR/venv/bin/python"
 
 if [[ ! -x "$PYTHON_BIN" ]]; then
-    echo "run.sh: warning: .venv-agent not found, falling back to python3." >&2
+    echo "run.sh: warning: agent/venv not found, falling back to python3." >&2
     PYTHON_BIN="python3"
 fi
 
