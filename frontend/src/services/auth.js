@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API = "/api";
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
+const API = API_BASE ? `${API_BASE}/api` : "/api";
 
 
 export async function login(username, password){
