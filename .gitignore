@@ -36,3 +36,4 @@ web-access-live.png
 *.error-backup
 backups/
 *.sql
+.vercel
