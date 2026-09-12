@@ -6,7 +6,7 @@ function Layout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0a0d12] text-white">
+    <div className="flex h-screen overflow-hidden bg-[var(--ds-bg)] text-white">
       <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0">

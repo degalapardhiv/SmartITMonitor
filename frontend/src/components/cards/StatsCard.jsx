@@ -1,13 +1,13 @@
 function StatsCard({ title, value, color }) {
   return (
-    <div className="bg-slate-800 rounded-xl p-6 shadow-lg">
-      <h3 className="text-gray-400">{title}</h3>
+    <div className="ui-stat">
+      <div className="ui-stat-label">{title}</div>
 
-      <h1
-        className={`text-4xl font-bold ${color}`}
+      <p
+        className={`ui-stat-value ${color || ""}`}
       >
         {value}
-      </h1>
+      </p>
     </div>
   );
 }

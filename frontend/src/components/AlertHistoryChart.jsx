@@ -12,13 +12,13 @@ import {
 import api from "../services/api";
 
 const TOOLTIP_STYLE = {
-    backgroundColor: "#1f1f1f",
-    border: "1px solid #333333",
-    color: "#ffffff",
-    borderRadius: "4px"
+    backgroundColor: "rgba(17, 24, 39, 0.95)",
+    border: "1px solid rgba(56, 189, 248, 0.15)",
+    color: "#f1f5f9",
+    borderRadius: "10px"
 };
 
-const TICK_STYLE = { fill: "#a3a3a3", fontSize: 12 };
+const TICK_STYLE = { fill: "#64748b", fontSize: 12 };
 
 
 export default function AlertHistoryChart(){
@@ -47,9 +47,9 @@ export default function AlertHistoryChart(){
 
     return (
 
-        <div className="mt-6">
+        <div className="ui-card p-6">
 
-            <h2 className="text-xl font-bold mb-4">
+            <h2 className="text-lg font-bold text-white mb-4 tracking-tight">
                 Alert History
             </h2>
 
@@ -58,19 +58,19 @@ export default function AlertHistoryChart(){
 
                 <LineChart data={data}>
 
-                    <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
+                    <CartesianGrid stroke="rgba(56, 189, 248, 0.06)" strokeDasharray="3 3" />
 
-                    <XAxis dataKey="time" tick={TICK_STYLE} stroke="#333333" />
+                    <XAxis dataKey="time" tick={TICK_STYLE} stroke="rgba(56, 189, 248, 0.1)" />
 
-                    <YAxis tick={TICK_STYLE} stroke="#333333" />
+                    <YAxis tick={TICK_STYLE} stroke="rgba(56, 189, 248, 0.1)" />
 
-                    <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#ffffff" }} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#94a3b8" }} />
 
                     <Line
                         type="monotone"
                         dataKey="value"
-                        stroke="#e50914"
-                        strokeWidth={3}
+                        stroke="#06b6d4"
+                        strokeWidth={2.5}
                         dot={false}
                     />
 

@@ -84,18 +84,18 @@ function LiveDevices() {
 
     <div className="mt-8">
 
-      <h2 className="text-2xl font-bold text-white mb-4">
+      <h2 className="text-lg font-bold text-white mb-4 tracking-tight">
         Live Devices
       </h2>
 
 
-      <div className="bg-slate-800 rounded-xl p-6">
+      <div className="ui-table-wrap p-6">
 
-        <table className="w-full text-white">
+        <table className="ui-table w-full text-white">
 
           <thead>
 
-            <tr className="text-gray-400">
+            <tr className="text-slate-500">
 
               <th className="text-left">
                 Hostname
@@ -150,7 +150,7 @@ function LiveDevices() {
                     {device.ram ?? 0}%
                   </td>
 
-                  <td className={online ? "text-green-400" : "text-red-400"}>
+                  <td className={online ? "text-emerald-400" : "text-red-400"}>
                     {device.status}
                   </td>
 
@@ -169,7 +169,7 @@ function LiveDevices() {
 
         {
           devices.length === 0 &&
-          <p className="text-gray-400 mt-4">
+          <p className="text-slate-500 mt-4">
             Waiting for devices...
           </p>
         }

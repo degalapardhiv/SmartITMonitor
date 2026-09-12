@@ -95,31 +95,31 @@ function Sidebar({ mobileOpen, onClose }) {
 
   const content = (
     <aside
-      className={`h-full flex flex-col bg-slate-900 border-r border-slate-700/60 transition-all ${
-        collapsed ? "w-16" : "w-60"
+      className={`h-full flex flex-col bg-[#111827]/95 backdrop-blur-xl border-r border-cyan-500/8 transition-all duration-300 ${
+        collapsed ? "w-[68px]" : "w-64"
       }`}
     >
       <div
-        className={`flex items-center gap-2.5 px-4 py-5 border-b border-slate-700/60 ${
+        className={`flex items-center gap-3 px-4 py-5 border-b border-cyan-500/8 ${
           collapsed ? "justify-center" : ""
         }`}
       >
-        <span className="w-9 h-9 shrink-0 rounded-lg bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400">
+        <div className="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-[#0891b2] to-[#06b6d4] flex items-center justify-center text-white shadow-lg shadow-cyan-500/20">
           <FiShieldOff className="text-lg" />
-        </span>
+        </div>
         {!collapsed && (
           <div className="leading-tight min-w-0">
-            <p className="font-bold text-[15px] tracking-tight truncate">
+            <p className="font-bold text-[15px] tracking-tight text-white truncate">
               SmartITMonitor
             </p>
-            <p className="text-[11px] text-slate-500">Security & IT Ops</p>
+            <p className="text-[11px] text-cyan-300/50">Security & IT Ops</p>
           </div>
         )}
       </div>
 
       <button
         onClick={() => setCollapsed((c) => !c)}
-        className="hidden lg:flex items-center justify-center gap-1 mx-3 mt-3 py-1.5 text-xs text-slate-500 hover:text-slate-300 rounded-md hover:bg-white/5"
+        className="hidden lg:flex items-center justify-center gap-1 mx-3 mt-3 py-1.5 text-xs text-slate-500 hover:text-slate-300 rounded-lg hover:bg-cyan-500/5 transition-colors"
       >
         {collapsed ? <FiChevronRight /> : <FiChevronLeft />}
         {!collapsed && "Collapse"}
@@ -138,11 +138,11 @@ function Sidebar({ mobileOpen, onClose }) {
               {!collapsed && (
                 <button
                   onClick={() => toggleGroup(group.title)}
-                  className="w-full flex items-center justify-between px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500 hover:text-slate-300"
+                  className="w-full flex items-center justify-between px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500 hover:text-slate-300 transition-colors"
                 >
                   {group.title}
                   <FiChevronDown
-                    className={`transition-transform ${
+                    className={`transition-transform duration-200 ${
                       open ? "" : "-rotate-90"
                     }`}
                   />
@@ -150,7 +150,7 @@ function Sidebar({ mobileOpen, onClose }) {
               )}
 
               {open && (
-                <div className="mt-1 space-y-0.5">
+                <div className="mt-1.5 space-y-0.5">
                   {visible.map((item) => {
                     const Icon = item.icon;
                     return (
@@ -160,18 +160,18 @@ function Sidebar({ mobileOpen, onClose }) {
                         end={item.to === "/"}
                         onClick={onClose}
                         className={({ isActive }) =>
-                          `flex items-center gap-3 px-2.5 py-2 rounded-lg text-[13.5px] font-medium transition ${
+                          `flex items-center gap-3 px-2.5 py-2 rounded-lg text-[13.5px] font-medium transition-all duration-200 ${
                             collapsed ? "justify-center" : ""
                           } ${
                             isActive
-                              ? "bg-red-600/15 text-red-300 border border-red-500/30"
-                              : "text-slate-400 hover:bg-white/5 hover:text-slate-100 border border-transparent"
+                              ? "bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 shadow-sm shadow-cyan-500/5"
+                              : "text-slate-400 hover:bg-cyan-500/5 hover:text-slate-100 border border-transparent"
                           }`
                         }
                       >
                         <Icon
                           className={`text-[17px] shrink-0 ${
-                            item.accent ? "text-red-400" : ""
+                            item.accent ? "text-cyan-400" : ""
                           }`}
                         />
                         {!collapsed && item.label}
@@ -186,8 +186,8 @@ function Sidebar({ mobileOpen, onClose }) {
       </nav>
 
       {!collapsed && (
-        <div className="px-4 py-4 border-t border-slate-700/60">
-          <p className="text-[11px] text-slate-600 leading-relaxed">
+        <div className="px-4 py-4 border-t border-cyan-500/8">
+          <p className="text-[11px] text-slate-500 leading-relaxed">
             Signed in as {role === "admin" ? "Administrator" : "Viewer"}
           </p>
         </div>
@@ -199,7 +199,7 @@ function Sidebar({ mobileOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="absolute inset-y-0 left-0 w-64">{content}</div>
       <button
         onClick={onClose}

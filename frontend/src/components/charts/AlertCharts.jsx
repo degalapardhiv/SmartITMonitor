@@ -9,22 +9,24 @@ import {
   Tooltip
 } from "recharts";
 
-const PALETTE = ["#e50914", "#f5a623", "#46d369", "#a3a3a3"];
+const PALETTE = ["#ef4444", "#f59e0b", "#10b981", "#64748b"];
 
 const TOOLTIP_STYLE = {
-  backgroundColor: "#1f1f1f",
-  border: "1px solid #333333",
-  color: "#ffffff",
-  borderRadius: "4px"
+  backgroundColor: "rgba(17, 24, 39, 0.95)",
+  border: "1px solid rgba(56, 189, 248, 0.15)",
+  color: "#f1f5f9",
+  borderRadius: "10px",
+  backdropFilter: "blur(8px)",
+  boxShadow: "0 8px 25px rgba(0, 0, 0, 0.3)",
 };
 
-const TICK_STYLE = { fill: "#a3a3a3", fontSize: 12 };
+const TICK_STYLE = { fill: "#64748b", fontSize: 12 };
 
 export default function AlertCharts({ data }) {
   return (
     <div className="grid lg:grid-cols-2 gap-6">
-      <div className="bg-slate-800 rounded-xl p-6">
-        <h2 className="text-xl font-bold mb-4">
+      <div className="ui-card p-6">
+        <h2 className="text-lg font-bold text-white mb-4 tracking-tight">
           Severity Distribution
         </h2>
 
@@ -43,12 +45,12 @@ export default function AlertCharts({ data }) {
             ))}
           </Pie>
 
-          <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#ffffff" }} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#94a3b8" }} />
         </PieChart>
       </div>
 
-      <div className="bg-slate-800 rounded-xl p-6">
-        <h2 className="text-xl font-bold mb-4">
+      <div className="ui-card p-6">
+        <h2 className="text-lg font-bold text-white mb-4 tracking-tight">
           Alert Types
         </h2>
 
@@ -57,12 +59,12 @@ export default function AlertCharts({ data }) {
           height={300}
           data={data.types}
         >
-          <XAxis dataKey="name" tick={TICK_STYLE} stroke="#333333" />
-          <YAxis tick={TICK_STYLE} stroke="#333333" />
+          <XAxis dataKey="name" tick={TICK_STYLE} stroke="rgba(56, 189, 248, 0.1)" />
+          <YAxis tick={TICK_STYLE} stroke="rgba(56, 189, 248, 0.1)" />
 
-          <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#ffffff" }} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#94a3b8" }} cursor={{ fill: "rgba(6, 182, 212, 0.04)" }} />
 
-          <Bar dataKey="value" fill="#e50914" />
+          <Bar dataKey="value" fill="#06b6d4" radius={[4, 4, 0, 0]} />
         </BarChart>
       </div>
     </div>

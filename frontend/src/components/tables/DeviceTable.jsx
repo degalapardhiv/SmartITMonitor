@@ -7,7 +7,7 @@ function DeviceTable({ devices }) {
     ) {
       return {
         text: "Critical",
-        color: "bg-red-600",
+        color: "bg-red-500",
       };
     }
 
@@ -18,22 +18,22 @@ function DeviceTable({ devices }) {
     ) {
       return {
         text: "Warning",
-        color: "bg-yellow-500",
+        color: "bg-amber-500",
       };
     }
 
     return {
       text: "Healthy",
-      color: "bg-green-600",
+      color: "bg-emerald-500",
     };
   }
 
   return (
-    <div className="bg-slate-800 rounded-xl shadow-lg overflow-x-auto">
+    <div className="ui-table-wrap overflow-x-auto">
 
-      <table className="min-w-full">
+      <table className="ui-table min-w-full">
 
-        <thead className="bg-slate-700">
+        <thead>
 
           <tr>
 
@@ -87,7 +87,7 @@ function DeviceTable({ devices }) {
 
               <td
                 colSpan="10"
-                className="text-center p-8 text-gray-400"
+                className="text-center p-8 text-slate-500"
               >
                 No devices found
               </td>
@@ -104,7 +104,7 @@ function DeviceTable({ devices }) {
 
                 <tr
                   key={device.id}
-                  className="border-t border-slate-700 hover:bg-slate-700 transition"
+                  className="border-t border-cyan-500/8 hover:bg-cyan-500/5 transition"
                 >
 
                   <td className="p-4 font-semibold">
@@ -142,10 +142,10 @@ function DeviceTable({ devices }) {
                   <td className="text-center">
 
                     <span
-                      className={`px-3 py-1 rounded-full text-white ${
-                        device.status === "Online"
-                          ? "bg-green-600"
-                          : "bg-red-600"
+                      className={`px-3 py-1 rounded-full text-white text-xs font-semibold ${
+                        String(device.status || "").toLowerCase() === "online"
+                          ? "bg-emerald-500"
+                          : "bg-red-500"
                       }`}
                     >
                       {device.status}

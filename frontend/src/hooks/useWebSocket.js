@@ -26,6 +26,10 @@ const statusListeners = new Set();
 
 export function getWsUrl() {
 
+  const custom = import.meta.env.VITE_WS_URL;
+
+  if (custom) return custom;
+
   const protocol =
     window.location.protocol === "https:"
     ? "wss"

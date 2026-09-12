@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { FiMenu, FiBell, FiLogOut, FiUser, FiShield, FiChevronDown } from "react-icons/fi";
+import { FiMenu, FiBell, FiLogOut, FiUser, FiShield, FiChevronDown, FiSun, FiMoon } from "react-icons/fi";
 import { useAuth } from "../../context/auth-context";
 import { useSocketStatus } from "../../hooks/useWebSocket";
 import api from "../../services/api";
@@ -24,16 +24,17 @@ const PAGE_TITLES = {
   "/settings": "Settings",
   "/email-history": "Email History",
   "/notification-history": "Notification History",
+  "/web-access": "Web Access Control",
 };
 
 const WS_META = {
-  open: { label: "LIVE", cls: "text-[#46d369] border-green-500/30 bg-green-500/10", dot: "bg-[#46d369]", pulse: true },
-  connected: { label: "LIVE", cls: "text-[#46d369] border-green-500/30 bg-green-500/10", dot: "bg-[#46d369]", pulse: true },
-  connecting: { label: "CONNECTING", cls: "text-[#e3b341] border-yellow-500/30 bg-yellow-500/10", dot: "bg-[#e3b341]" },
-  reconnecting: { label: "RECONNECTING", cls: "text-[#e3b341] border-yellow-500/30 bg-yellow-500/10", dot: "bg-[#e3b341]" },
-  error: { label: "CONNECTION ERROR", cls: "text-[#e6797e] border-red-500/30 bg-red-500/10", dot: "bg-[#e6797e]" },
-  disconnected: { label: "OFFLINE", cls: "text-[#e6797e] border-red-500/30 bg-red-500/10", dot: "bg-[#e6797e]" },
-  idle: { label: "STANDBY", cls: "text-[#5b6b80] border-white/10 bg-white/5", dot: "bg-[#5b6b80]" },
+  open: { label: "LIVE", cls: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10", dot: "bg-emerald-400", pulse: true },
+  connected: { label: "LIVE", cls: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10", dot: "bg-emerald-400", pulse: true },
+  connecting: { label: "CONNECTING", cls: "text-amber-400 border-amber-500/30 bg-amber-500/10", dot: "bg-amber-400" },
+  reconnecting: { label: "RECONNECTING", cls: "text-amber-400 border-amber-500/30 bg-amber-500/10", dot: "bg-amber-400" },
+  error: { label: "CONNECTION ERROR", cls: "text-red-400 border-red-500/30 bg-red-500/10", dot: "bg-red-400" },
+  disconnected: { label: "OFFLINE", cls: "text-red-400 border-red-500/30 bg-red-500/10", dot: "bg-red-400" },
+  idle: { label: "STANDBY", cls: "text-slate-500 border-white/10 bg-white/5", dot: "bg-slate-500" },
 };
 
 function Navbar({ onMenuClick }) {
@@ -44,6 +45,7 @@ function Navbar({ onMenuClick }) {
 
   const [notifCount, setNotifCount] = useState(0);
   const [userOpen, setUserOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
   const userRef = useRef(null);
 
   useEffect(() => {
@@ -88,21 +90,21 @@ function Navbar({ onMenuClick }) {
       : "Operations Dashboard");
 
   return (
-    <header className="h-16 flex-none sticky top-0 z-30 flex items-center justify-between gap-4 px-4 sm:px-6 bg-[#0f1319]/85 backdrop-blur border-b border-white/10">
+    <header className="h-16 flex-none sticky top-0 z-30 flex items-center justify-between gap-4 px-4 sm:px-6 bg-[#111827]/80 backdrop-blur-xl border-b border-cyan-500/8">
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 rounded-md text-[#a5b2c4] hover:text-white hover:bg-white/5"
+          className="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-cyan-500/5 transition-colors"
           aria-label="Open menu"
         >
           <FiMenu className="text-xl" />
         </button>
 
         <div className="min-w-0">
-          <h1 className="text-[17px] sm:text-[19px] font-bold tracking-tight truncate">
+          <h1 className="text-[17px] sm:text-[19px] font-bold tracking-tight truncate text-white">
             {title}
           </h1>
-          <p className="text-[11px] text-[#8a98ac] hidden sm:block">
+          <p className="text-[11px] text-slate-500 hidden sm:block">
             SmartITMonitor · Security Operations Center
           </p>
         </div>
@@ -123,12 +125,12 @@ function Navbar({ onMenuClick }) {
 
         <Link
           to="/alert-center"
-          className="relative p-2 rounded-md text-[#a5b2c4] hover:text-white hover:bg-white/5"
+          className="relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-cyan-500/5 transition-colors"
           title="Active alerts"
         >
           <FiBell className="text-xl" />
           {notifCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#c22a32] text-white text-[10px] font-bold flex items-center justify-center border border-black/40">
+            <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center border border-black/40 shadow-sm shadow-red-500/30">
               {notifCount > 99 ? "99+" : notifCount}
             </span>
           )}
@@ -137,25 +139,25 @@ function Navbar({ onMenuClick }) {
         <div className="relative" ref={userRef}>
           <button
             onClick={() => setUserOpen((v) => !v)}
-            className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/5"
+            className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-cyan-500/5 transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#a4232a] to-[#d6454d] flex items-center justify-center text-white font-bold text-sm">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0891b2] to-[#06b6d4] flex items-center justify-center text-white font-bold text-sm shadow-sm shadow-cyan-500/20">
               {(username || "U").charAt(0).toUpperCase()}
             </div>
             <div className="hidden sm:block text-left leading-tight">
               <p className="text-[13px] font-semibold text-white max-w-[120px] truncate">
                 {username || "User"}
               </p>
-              <p className="text-[11px] text-[#e6797e] capitalize">{role || "viewer"}</p>
+              <p className="text-[11px] text-cyan-400 capitalize">{role || "viewer"}</p>
             </div>
-            <FiChevronDown className="text-sm text-[#5b6b80] hidden sm:block" />
+            <FiChevronDown className="text-sm text-slate-500 hidden sm:block" />
           </button>
 
           {userOpen && (
-            <div className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-white/10 bg-[#141922] shadow-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/10">
+            <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-cyan-500/10 bg-[#1a2332]/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-cyan-500/8">
                 <p className="text-sm font-semibold text-white">{username || "User"}</p>
-                <p className="text-[11px] text-[#8a98ac] capitalize">
+                <p className="text-[11px] text-slate-400 capitalize">
                   {role === "admin" ? "Administrator" : "Viewer"}
                 </p>
               </div>
@@ -163,22 +165,22 @@ function Navbar({ onMenuClick }) {
               <div className="px-2 py-2">
                 <Link
                   to="/settings"
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] text-[#a5b2c4] hover:text-white hover:bg-white/5"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-slate-400 hover:text-white hover:bg-cyan-500/5 transition-colors"
                 >
                   <FiUser className="text-[15px]" /> Profile & Settings
                 </Link>
                 <Link
                   to="/threats"
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] text-[#a5b2c4] hover:text-white hover:bg-white/5"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-slate-400 hover:text-white hover:bg-cyan-500/5 transition-colors"
                 >
                   <FiShield className="text-[15px]" /> Threat Protection
                 </Link>
               </div>
 
-              <div className="border-t border-white/10 px-2 py-2">
+              <div className="border-t border-cyan-500/8 px-2 py-2">
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] text-[#e6797e] hover:bg-red-600/10"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-red-400 hover:bg-red-500/10 transition-colors"
                 >
                   <FiLogOut className="text-[15px]" /> Sign out
                 </button>

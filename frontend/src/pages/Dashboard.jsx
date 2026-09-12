@@ -753,28 +753,23 @@ function severityBadge(level) {
 
 function Card({title,value,tone}) {
 
-  const toneColor = {
-
-    danger: "var(--ds-danger)",
-
-    success: "var(--ds-success)",
-
-    warning: "var(--ds-warning)",
-
-    neutral: "var(--ds-text)",
-
-  }[tone] || "var(--ds-text)";
+  const toneStyles = {
+    danger: { color: "#fca5a5", bg: "rgba(239, 68, 68, 0.06)", border: "rgba(239, 68, 68, 0.15)" },
+    success: { color: "#34d399", bg: "rgba(16, 185, 129, 0.06)", border: "rgba(16, 185, 129, 0.15)" },
+    warning: { color: "#fbbf24", bg: "rgba(245, 158, 11, 0.06)", border: "rgba(245, 158, 11, 0.15)" },
+    neutral: { color: "#f1f5f9", bg: "rgba(56, 189, 248, 0.04)", border: "rgba(56, 189, 248, 0.10)" },
+  }[tone] || { color: "#f1f5f9", bg: "rgba(56, 189, 248, 0.04)", border: "rgba(56, 189, 248, 0.10)" };
 
 
   return (
 
-    <div className="ui-stat">
+    <div className="ui-stat" style={{ background: toneStyles.bg, borderColor: toneStyles.border }}>
 
       <div className="ui-stat-label">
         {title}
       </div>
 
-      <p className="ui-stat-value" style={{ color: toneColor }}>
+      <p className="ui-stat-value" style={{ background: "none", WebkitTextFillColor: toneStyles.color, color: toneStyles.color }}>
         {value}
       </p>
 
